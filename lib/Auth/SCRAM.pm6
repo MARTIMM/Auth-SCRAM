@@ -18,7 +18,8 @@ class SCRAM {
   has Bool $!strings-are-prepped = False;
 
   # Name of digest, usable values are sha1 and sha256
-  has Callable $!PRF;
+  has Callable $!CGH;
+  has PKCS5::PBKDF2 $!pbkdf2;
 
   # Client side and server side communication. Pick one or the other.
   has $!client-side;
@@ -42,15 +43,28 @@ class SCRAM {
 
   has Str $!server-first-message;
   has Str $!s-nonce;
-  has Str $!s-salt;
-  has Str $!s-iter;
+  has Buf $!s-salt;
+  has Int $!s-iter;
+
+  has Buf $!salted-password;
+  has Buf $!client-key;
+  has Buf $!stored-key;
+
+  has Str $!channel-binding;
+  has Str $!client-final-without-proof;
+  has Str $!client-final-message;
+  has Str $!auth-message;
+  has Buf $!client-signature;
+  has Buf $!client-proof;
+
+  has Str $!server-final-message;
 
   #-----------------------------------------------------------------------------
   submethod BUILD (
     Str:D :$username!,
     Str:D :$password!,
 
-    Callable :$PRF = &sha1,
+    Callable :$CGH = &sha1,
     Str :$authzid,
     :$client-side,
     :$server-side,
@@ -60,7 +74,8 @@ class SCRAM {
     $!password = $password;
     $!authzid = $authzid;
 
-    $!PRF = $PRF;
+    $!CGH = $CGH;
+    $!pbkdf2 .= new(:$CGH);
 
     # Check client or server object capabilities
     if $client-side.defined {
@@ -68,22 +83,20 @@ class SCRAM {
           if $server-side.defined;
 
       die 'message object misses some methods'
-          unless ?$client-side.^can('message1')
-          and ?$client-side.^can('message2')
-#          and ?$client-side.^can('message3')
-          and ?$client-side.^can('error')
-          ;
+          unless self!test-methods(
+            $client-side,
+            <message1 message2 mangle-password error>
+          );
 
       $!client-side = $client-side;
     }
 
     elsif $server-side.defined {
-      die 'Client object misses some methods'
-          unless ?$server-side.^can('message1')
-          and ?$server-side.^can('message2')
-#          and ?$server-side.^can('message3')
-          and ?$client-side.^can('error')
-          ;
+      die 'Server object misses some methods'
+          unless self!test-methods(
+            $server-side,
+            <message1 message2 error>
+          );
 
       $!server-side = $server-side;
     }
@@ -117,6 +130,10 @@ say "server first message: ", $!server-first-message;
       return fail($error);
     }
 
+    # Prepare for second round ... `doiinggg' :-P
+    self!client-final-message;
+    $!server-final-message = $!client-side.message2($!client-final-message);
+say "server final message: ", $!server-final-message;
     
   }
 
@@ -182,6 +199,49 @@ say "client first message: ", $!client-first-message-bare;
   }
 
   #-----------------------------------------------------------------------------
+  method !client-final-message ( ) {
+
+    # Using named arguments, the clients object doesn't need to
+    # support all variables as long as a Buf is returned
+    my Buf $user-mangled-password = $!client-side.mangle-password(
+      :$!username, :$!password, :$!authzid
+    );
+
+    $!salted-password = $!pbkdf2.derive(
+      $user-mangled-password,
+      $!s-salt,
+      $!s-iter
+    );
+say "SP: ", $!salted-password;
+
+    $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
+    $!stored-key = $!CGH($!client-key);
+
+    # biws is from encode-base64( 'n,,', :str)
+    #TODO gs2-header [ cbind-data ]
+    $!channel-binding = "c=biws";
+    $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
+
+    $!auth-message = 
+      ( $!client-first-message-bare,
+        $!server-first-message,
+        $!client-final-without-proof
+      ).join(',');
+
+    $!client-signature = hmac( $!stored-key, $!auth-message, &$!CGH);
+
+    $!client-proof .= new;
+    for ^($!client-key.elems) -> $i {
+      $!client-proof[$i] = $!client-key[$i] +^ $!client-signature[$i];
+    }
+    
+    $!client-final-message =
+      [~] $!client-final-without-proof,
+          ',p=',
+          encode-base64( $!client-proof, :str);
+  }
+
+  #-----------------------------------------------------------------------------
   method !process-server-first ( --> Str ) {
 
     my Str $error = '';
@@ -204,8 +264,8 @@ say "client first message: ", $!client-first-message-bare;
     return $error if $error;
 
     $!s-nonce = $nonce;
-    $!s-salt = $salt;
-    $!s-iter = $iter;
+    $!s-salt = decode-base64( $salt, :bin);
+    $!s-iter = $iter.Int;
 
     $error;
   }
@@ -236,5 +296,19 @@ say "client first message: ", $!client-first-message-bare;
     $name ~~ s:g/ ',' /=2c/;
 
     $name;
+  }
+
+  #-----------------------------------------------------------------------------
+  method !test-methods ( $obj, @methods --> Bool ) {
+
+    my Bool $all-there = True;
+    for @methods -> $method {
+      if !? $obj.^can($method) {
+        $all-there = False;
+        last;
+      }
+    }
+
+    $all-there;
   }
 }

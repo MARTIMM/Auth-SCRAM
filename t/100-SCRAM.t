@@ -27,15 +27,18 @@ class MyClient {
 
   method message2 ( Str:D $string --> Str ) {
   
+    is $string, 'c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=', $string;
+
+    'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=';
   }
 
   method message3 ( Str:D $string --> Str ) {
   
   }
 
-  method user-hash-password ( Str:D $username, Str:D $password --> Str ) {
+  method mangle-password ( Str:D :$password --> Buf ) {
 
-    $password;
+    Buf.new($password.encode);
   }
 
   method error ( Str:D $message --> Str ) {
