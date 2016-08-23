@@ -58,6 +58,8 @@ class SCRAM {
   has Buf $!client-proof;
 
   has Str $!server-final-message;
+  has Buf $!server-key;
+  has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
   submethod BUILD (
@@ -85,7 +87,7 @@ class SCRAM {
       die 'message object misses some methods'
           unless self!test-methods(
             $client-side,
-            <message1 message2 mangle-password error>
+            <message1 message2 mangle-password clean-up error>
           );
 
       $!client-side = $client-side;
@@ -95,7 +97,7 @@ class SCRAM {
       die 'Server object misses some methods'
           unless self!test-methods(
             $server-side,
-            <message1 message2 error>
+            <message1 message2 clean-up error>
           );
 
       $!server-side = $server-side;
@@ -122,7 +124,7 @@ class SCRAM {
     # Prepare message and send to server. Returns server-first-message
     self!client-first-message;
     $!server-first-message = $!client-side.message1($!client-first-message);
-say "server first message: ", $!server-first-message;
+#say "server first message: ", $!server-first-message;
 
     my Str $error = self!process-server-first;
     if ?$error {
@@ -133,8 +135,14 @@ say "server first message: ", $!server-first-message;
     # Prepare for second round ... `doiinggg' :-P
     self!client-final-message;
     $!server-final-message = $!client-side.message2($!client-final-message);
-say "server final message: ", $!server-final-message;
-    
+#say "server final message: ", $!server-final-message;
+    $error = self!verify-server;
+    if ?$error {
+      $!client-side.error($error);
+      return fail($error);
+    }
+
+    '';
   }
 
   #-----------------------------------------------------------------------------
@@ -150,11 +158,11 @@ say "server final message: ", $!server-final-message;
     }
 
     self!set-gs2header;
-say "gs2 header: ", $!gs2-header;
+#say "gs2 header: ", $!gs2-header;
 
     self!set-client-first;
-say "client first message bare: ", $!client-first-message-bare;
-say "client first message: ", $!client-first-message-bare;
+#say "client first message bare: ", $!client-first-message-bare;
+#say "client first message: ", $!client-first-message-bare;
 
   }
 
@@ -212,7 +220,7 @@ say "client first message: ", $!client-first-message-bare;
       $!s-salt,
       $!s-iter
     );
-say "SP: ", $!salted-password;
+#say "SP: ", $!salted-password;
 
     $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
     $!stored-key = $!CGH($!client-key);
@@ -234,7 +242,7 @@ say "SP: ", $!salted-password;
     for ^($!client-key.elems) -> $i {
       $!client-proof[$i] = $!client-key[$i] +^ $!client-signature[$i];
     }
-    
+
     $!client-final-message =
       [~] $!client-final-without-proof,
           ',p=',
@@ -266,6 +274,35 @@ say "SP: ", $!salted-password;
     $!s-nonce = $nonce;
     $!s-salt = decode-base64( $salt, :bin);
     $!s-iter = $iter.Int;
+
+    $error;
+  }
+
+  #-----------------------------------------------------------------------------
+  method !verify-server ( --> Str ) {
+
+    my Str $error = '';
+
+    if $!server-final-message ~~ m/^ 'e=' / {
+      # error
+    }
+
+    elsif $!server-final-message ~~ m/^ 'v=' / {
+      # verify server
+      my Str $sv = $!server-final-message;
+      $sv ~~ s/^ 'v=' //;
+
+      $!server-key = hmac( $!salted-password, 'Server Key', &$!CGH);
+      $!server-signature = hmac( $!server-key, $!auth-message, &$!CGH);
+
+      if encode-base64( $!server-signature, :str) ne $sv {
+        $error = 'Server verification failed';
+      }
+    }
+
+    else {
+      $error = 'Server response not recognized';
+    }
 
     $error;
   }

@@ -4,8 +4,8 @@ use v6.c;
 use Test;
 
 use Auth::SCRAM;
-use OpenSSL::Digest;
-use Base64;
+#use OpenSSL::Digest;
+#use Base64;
 
 #-------------------------------------------------------------------------------
 # Example from rfc
@@ -32,13 +32,14 @@ class MyClient {
     'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=';
   }
 
-  method message3 ( Str:D $string --> Str ) {
-  
-  }
-
   method mangle-password ( Str:D :$password --> Buf ) {
 
     Buf.new($password.encode);
+  }
+
+  method clean-up (  ) {
+
+    diag 'been here, done that';
   }
 
   method error ( Str:D $message --> Str ) {
