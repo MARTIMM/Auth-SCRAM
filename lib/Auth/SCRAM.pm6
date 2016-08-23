@@ -85,20 +85,14 @@ class SCRAM {
           if $server-side.defined;
 
       die 'message object misses some methods'
-          unless self!test-methods(
-            $client-side,
-            <message1 message2 mangle-password clean-up error>
-          );
+        unless self!test-methods( $client-side, <message1 message2 error>);
 
       $!client-side = $client-side;
     }
 
     elsif $server-side.defined {
       die 'Server object misses some methods'
-          unless self!test-methods(
-            $server-side,
-            <message1 message2 clean-up error>
-          );
+        unless self!test-methods( $server-side, <message1 message2 error>);
 
       $!server-side = $server-side;
     }
@@ -141,6 +135,8 @@ class SCRAM {
       $!client-side.error($error);
       return fail($error);
     }
+
+    $!client-side.clean-up if $!client-side.^can('clean-up');
 
     '';
   }
@@ -211,16 +207,19 @@ class SCRAM {
 
     # Using named arguments, the clients object doesn't need to
     # support all variables as long as a Buf is returned
-    my Buf $user-mangled-password = $!client-side.mangle-password(
-      :$!username, :$!password, :$!authzid
-    );
+    my Buf $mangled-password;
+    if $!client-side.^can('mangle-password') {
+      $mangled-password = $!client-side.mangle-password(
+        :$!username, :$!password, :$!authzid
+      );
+    }
 
-    $!salted-password = $!pbkdf2.derive(
-      $user-mangled-password,
-      $!s-salt,
-      $!s-iter
-    );
-#say "SP: ", $!salted-password;
+    else {
+      $mangled-password = Buf.new($!password.encode);
+    }
+
+    $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
+say "SP: ", $!salted-password, ', ', $!s-iter;
 
     $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
     $!stored-key = $!CGH($!client-key);
