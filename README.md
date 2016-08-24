@@ -24,6 +24,11 @@ This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c
 
 ## BUGS, KNOWN LIMITATIONS AND TODO
 
+* Implement server side code
+* Keep information when calculated. User requst boolean and username/password/authzid must be kept the same. This saves time.
+* Channel binding and several other checks
+* Normalization with rfc3454 rfc7564 (stringprep).  saslPrep rfc4013 rfc7613
+
 ## CHANGELOG
 
 See [semantic versioning](http://semver.org/). Please note point 4. on

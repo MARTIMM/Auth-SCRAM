@@ -9,6 +9,10 @@ use PKCS5::PBKDF2;
 #-------------------------------------------------------------------------------
 unit package Auth;
 
+#TODO Implement server side
+#TODO Keep information when calculated. User requst boolean
+#     and username/password/authzid must be kept the same. This saves time.
+
 #-------------------------------------------------------------------------------
 class SCRAM {
 
@@ -123,7 +127,8 @@ class SCRAM {
     my Str $error = self!process-server-first;
     if ?$error {
       $!client-side.error($error);
-      return fail($error);
+      return $error;
+#      return fail($error);
     }
 
     # Prepare for second round ... `doiinggg' :-P
@@ -133,7 +138,8 @@ class SCRAM {
     $error = self!verify-server;
     if ?$error {
       $!client-side.error($error);
-      return fail($error);
+      return $error;
+#      return fail($error);
     }
 
     $!client-side.clean-up if $!client-side.^can('clean-up');
@@ -188,9 +194,10 @@ class SCRAM {
 
     $!client-first-message-bare ~= "r=$!c-nonce";
 
-    # Not needed anymore, neccesary to reset to prevent reuse by hackers
-    # So when user needs its own nonce again, set it before starting scram.
-    $!c-nonce = Str;
+# Not needed anymore, necessary to reset to prevent reuse by hackers
+# So when user needs its own nonce again, set it before starting scram.
+$!c-nonce = Str;
+#TODO used later to check returned server nonce, so not yet resetting it here!
 
     # Only single character keynames are taken
     my Str $ext = (
@@ -219,13 +226,12 @@ class SCRAM {
     }
 
     $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
-say "SP: ", $!salted-password, ', ', $!s-iter;
 
     $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
     $!stored-key = $!CGH($!client-key);
 
     # biws is from encode-base64( 'n,,', :str)
-    #TODO gs2-header [ cbind-data ]
+#TODO gs2-header [ cbind-data ]
     $!channel-binding = "c=biws";
     $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
 
@@ -261,6 +267,7 @@ say "SP: ", $!salted-password, ', ', $!s-iter;
     $nonce ~~ s/^ 'r=' //;
     $error = 'no nonce found' if !? $nonce or !?$/; # Check s/// operation too
     return $error if $error;
+#TODO Check if it starts with client nonce
 
     $salt ~~ s/^ 's=' //;
     $error = 'no salt found' if !? $salt or !?$/;
