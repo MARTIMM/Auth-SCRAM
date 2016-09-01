@@ -128,7 +128,6 @@ class SCRAM {
     if ?$error {
       $!client-side.error($error);
       return $error;
-#      return fail($error);
     }
 
     # Prepare for second round ... `doiinggg' :-P
@@ -139,10 +138,9 @@ class SCRAM {
     if ?$error {
       $!client-side.error($error);
       return $error;
-#      return fail($error);
     }
 
-    $!client-side.clean-up if $!client-side.^can('clean-up');
+    $!client-side.cleanup if $!client-side.^can('cleanup');
 
     '';
   }

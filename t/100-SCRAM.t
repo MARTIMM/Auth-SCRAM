@@ -34,8 +34,8 @@ class MyClient {
 
   # method mangle-password() is optional
 
-  # method clean-up() is optional
-  method clean-up (  ) {
+  # method cleanup() is optional
+  method cleanup (  ) {
 
     diag 'been here, done that';
   }
