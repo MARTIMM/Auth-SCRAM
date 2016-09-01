@@ -54,6 +54,8 @@ class MyClient {
 
 ## DOCUMENTATION
 
+See pod documentation
+
 ## INSTALLING THE MODULES
 
 Use panda to install the package like so.
@@ -79,7 +81,7 @@ that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
 * 0.1.1
-  * modified clean-up() optional method into cleanup().
+  * renamed clean-up() optional method into cleanup().
 * 0.1.0
   * mangle-password and clean-up in user objects are made optional. Called when defined.
 * 0.0.2
