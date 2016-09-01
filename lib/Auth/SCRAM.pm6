@@ -114,7 +114,7 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
-  method start-scram( ) {
+  method start-scram( --> Str ) {
 
     # Can only done from client so check client object
     die 'No client object defined' unless $!client-side.defined;
