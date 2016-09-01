@@ -7,6 +7,49 @@ This package implements secure authentication mechanism.
 ## Synopsis
 
 ```
+# Example from rfc
+# C: n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL
+# S: r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096
+# C: c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,
+#    p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
+# S: v=rmF9pqV8S7suAoZWja4dJRkFsKQ=
+#
+class MyClient {
+
+  # Send client first message to server and return server response
+  method message1 ( Str:D $client-first-message --> Str ) {
+
+    # Send $client-first-message to server;
+
+    # Server response is server first message
+    'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
+  }
+
+  # Send client final message to server and return server response
+  method message2 ( Str:D $client-final-message --> Str ) {
+
+    # Send $client-final-message to server.
+
+    # Server response is server final message
+    'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=';
+  }
+
+  method error ( Str:D $message --> Str ) {
+    # Errors? nah ... (Famous last words!)
+  }
+}
+
+  my Auth::SCRAM $sc .= new(
+    :username<user>,
+    :password<pencil>,
+    :client-side(MyClient.new),
+  );
+  isa-ok $sc, Auth::SCRAM;
+
+  $sc.c-nonce-size = 24;
+  $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
+
+  my $error = $sc.start-scram;
 ```
 
 ## DOCUMENTATION
