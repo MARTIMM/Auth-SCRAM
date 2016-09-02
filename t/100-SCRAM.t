@@ -18,16 +18,22 @@ use Auth::SCRAM;
 class MyClient {
 
   # send client first message to server and return server response
-  method message1 ( Str:D $string --> Str ) {
+  method client-first ( Str:D $client-first-message --> Str ) {
 
-    is $string, 'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL', $string;
+    is $client-first-message,
+       'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL',
+       $client-first-message;
 
     'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
   }
 
-  method message2 ( Str:D $string --> Str ) {
+  method client-final ( Str:D $client-final-message --> Str ) {
   
-    is $string, 'c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=', $string;
+    is $client-final-message,
+       < c=biws r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j
+         p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
+       >.join(','),
+       $client-final-message;
 
     'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=';
   }
@@ -40,7 +46,7 @@ class MyClient {
     diag 'been here, done that';
   }
 
-  method error ( Str:D $message --> Str ) {
+  method error ( Str:D $error-message --> Str ) {
 
   }
 }
@@ -55,7 +61,6 @@ subtest {
   );
   isa-ok $sc, Auth::SCRAM;
 
-  $sc.c-nonce-size = 24;
   $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
 
   $sc.start-scram;

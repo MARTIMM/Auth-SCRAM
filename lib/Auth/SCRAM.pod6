@@ -49,7 +49,7 @@ shell( "perl6 --doc=HTML '$pod' | wkhtmltopdf - '$pdf'");
   class MyClient {
 
     # Send client first message to server and return server response
-    method message1 ( Str:D $client-first-message --> Str ) {
+    method client-first ( Str:D $client-first-message --> Str ) {
 
       # Send $client-first-message to server;
 
@@ -58,7 +58,7 @@ shell( "perl6 --doc=HTML '$pod' | wkhtmltopdf - '$pdf'");
     }
 
     # Send client final message to server and return server response
-    method message2 ( Str:D $client-final-message --> Str ) {
+    method client-final ( Str:D $client-final-message --> Str ) {
 
       # Send $client-final-message to server.
 
@@ -92,10 +92,21 @@ Defined as
   has Str $.c-nonce is rw;
 
 Control the generation of a nonce yourself. When not set, the class will makeup
-one of the default length.
+one of the default length of 24 octets and encode in base64.
+
+  $!c-nonce = encode-base64(
+    Buf.new((for ^$!c-nonce-size { (rand * 256).Int })),
+    :str
+  );
+
 
   has Str $.reserved-mext is rw;
   has Hash $.extensions is rw = %();
+
+...
+
+  has Int $.s-nonce-size is rw = 24;
+  has Str $.s-nonce is rw;
 
 ...
 
@@ -131,13 +142,13 @@ to finalize the authetication.
 
 The client side object must provide the following methods:
 
-  method message1 ( Str:D $client-first-message --> Str )
+  method client-first ( Str:D $client-first-message --> Str )
 
 This method is called by the scram process to deliver the client first message
 to the server. For further information please take a look L<here at rfc 5802|https://tools.ietf.org/html/rfc5802>. The method must return the server
 response in what is called server first message.
 
-  method message2 ( Str:D $client-final-message --> Str )
+  method client-final ( Str:D $client-final-message --> Str )
 
 This method is called like above to send the final message to the server which
 in turn will return the server final message. This must be returned to the scram
@@ -202,11 +213,12 @@ but it is when utf characters are used. The preparation is performed by default.
 
 Defined as
 
-  method start-scram( --> Str ) {
+  method start-scram( Str :$client-first-message --> Str ) {
 
 Start authentication. An error message is returned when an error is encountered.
 This is the same error sent to the C<error()> method mentioned above. When
-successful, it returns an empty string ('').
+successful, it returns an empty string (''). $client-first-message must be
+defined when a server object is provided to the C<new()> method.
 
 
 =end pod

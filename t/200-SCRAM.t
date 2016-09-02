@@ -17,25 +17,72 @@ use Auth::SCRAM;
 #
 class MyServer {
 
-  # send client first message to server and return server response
-  method message1 ( Str:D $string --> Str ) {
+  has Hash $!credentials-db;
+  
 
-    is $string, 'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL', $string;
+  submethod BUILD ( Str:D :$username, Str:D :$password ) {
 
-    'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
+    my Auth::SCRAM $sc .= new(
+      :username($username),
+      :password($password),
+      :server-side(self)
+    );
+
+    my Buf $salt = self.salt;
+    my Int $iter = self.iterations;
+    my Buf $mangled-password = sc.mangle-password(:$password);
+
+    isa-ok $sc, Auth::SCRAM;
+
+    $sc.s-nonce-size = 24;
+    $sc.s-nonce = '3rfcNHYJY1ZVvWVs7j';
+    
   }
 
-  method message2 ( Str:D $string --> Str ) {
-  
-    is $string, 'c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=', $string;
+  # return server first message to client, then receive and
+  # return client final response
+  method server-first ( Str:D $server-first-message --> Str ) {
 
-    'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=';
+    is $server-first-message,
+       'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096',
+       $server-first-message;
+
+    < c=biws
+      r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j
+      p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
+    >.join(',');
+  }
+
+  # return server final message
+  method server-final ( Str:D $server-final-message --> Str ) {
+
+  }
+
+  # method auth-id() is optional and called when gs2 header provides it
+  method authzid ( Str $username, Str $authzid --> Bool ) {
+
+  }
+
+  # method salt() is optional
+  method salt ( --> Buf ) {
+
+    Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118);
+  }
+
+  # method iterations() is optional
+  method iterations( --> Int ) {
+
+    4096;
   }
 
   # method mangle-password() is optional
+  method mangle-password ( --> Str ) {
+
+    $!password;
+  }
 
   # method cleanup() is optional
-  method cleanup (  ) {
+  method cleanup ( ) {
 
     diag 'been here, done that';
   }
@@ -49,20 +96,16 @@ class MyServer {
 subtest {
 
   # Preparations
-  my Auth::SCRAM $sc .= new(
+  my MyServer $ms .= new(
     :username<user>,
-    :password<pencil>,
-    :server-side(MyServer.new),
+    :password<pencil>
   );
-  isa-ok $sc, Auth::SCRAM;
-
-  $sc.c-nonce-size = 24;
-  $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
-
 
   # Server listens on socket and gets request to process client first message
+  my Str $client-first-message = 'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL';
 
-  $sc.start-scram;
+  my $error = $sc.start-scram(:$client-first-message);
+  is $error, '', "Empty error: '$error'";
 
 }, 'SCRAM tests';
 

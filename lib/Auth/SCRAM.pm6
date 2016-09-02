@@ -37,16 +37,19 @@ class SCRAM {
   # Nonce size in bytes
   has Int $.c-nonce-size is rw = 24;
   has Str $.c-nonce is rw;
+#TODO use of reserved mext and extensions
   has Str $.reserved-mext is rw;
   has Hash $.extensions is rw = %();
 
   # Strings used for communication
+  has Str $!gs2-bind-flag;
   has Str $!gs2-header;
   has Str $!client-first-message-bare;
   has Str $!client-first-message;
 
   has Str $!server-first-message;
-  has Str $!s-nonce;
+  has Int $.s-nonce-size is rw = 18;
+  has Str $.s-nonce is rw;
   has Buf $!s-salt;
   has Int $!s-iter;
 
@@ -89,14 +92,20 @@ class SCRAM {
           if $server-side.defined;
 
       die 'message object misses some methods'
-        unless self!test-methods( $client-side, <message1 message2 error>);
+        unless self!test-methods(
+          $client-side,
+          <client-first client-final error>
+        );
 
       $!client-side = $client-side;
     }
 
     elsif $server-side.defined {
       die 'Server object misses some methods'
-        unless self!test-methods( $server-side, <message1 message2 error>);
+        unless self!test-methods(
+          $server-side,
+          <server-first server-final error>
+        );
 
       $!server-side = $server-side;
     }
@@ -114,14 +123,39 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
-  method start-scram( --> Str ) {
+  method start-scram( Str :$client-first-message --> Str ) {
+
+    my Str $error = '';
+
+    if $!client-side.defined {
+      $error = self!client-side-process;
+    }
+
+    else {
+say "Server side processing";
+
+      if ? $client-first-message {
+        $!client-first-message = $client-first-message;
+        $error = self!server-side-process;
+      }
+
+      else {
+        $error = 'No client first message provided';
+      }
+    }
+
+    $error;
+  }
+
+  #-----------------------------------------------------------------------------
+  method !client-side-process ( ) {
 
     # Can only done from client so check client object
     die 'No client object defined' unless $!client-side.defined;
 
     # Prepare message and send to server. Returns server-first-message
     self!client-first-message;
-    $!server-first-message = $!client-side.message1($!client-first-message);
+    $!server-first-message = $!client-side.client-first($!client-first-message);
 #say "server first message: ", $!server-first-message;
 
     my Str $error = self!process-server-first;
@@ -132,7 +166,7 @@ class SCRAM {
 
     # Prepare for second round ... `doiinggg' :-P
     self!client-final-message;
-    $!server-final-message = $!client-side.message2($!client-final-message);
+    $!server-final-message = $!client-side.client-final($!client-final-message);
 #say "server final message: ", $!server-final-message;
     $error = self!verify-server;
     if ?$error {
@@ -141,7 +175,6 @@ class SCRAM {
     }
 
     $!client-side.cleanup if $!client-side.^can('cleanup');
-
     '';
   }
 
@@ -170,7 +203,9 @@ class SCRAM {
   method !set-gs2header ( ) {
 
     my $aid = ($!authzid.defined and $!authzid.chars) ?? "a=$!authzid" !! '';
-    $!gs2-header = "n,$aid";
+
+    $!gs2-bind-flag = 'n';
+    $!gs2-header = "$!gs2-bind-flag,$aid";
   }
 
   #-----------------------------------------------------------------------------
@@ -183,12 +218,10 @@ class SCRAM {
 
     $!client-first-message-bare ~= "n=$!username,";
 
-    unless ? $!c-nonce {
-      $!c-nonce = encode-base64(
-        Buf.new((for ^$!c-nonce-size { (rand * 256).Int }))
-        , :str
-      );
-    }
+    $!c-nonce = encode-base64(
+      Buf.new((for ^$!c-nonce-size { (rand * 256).Int })),
+      :str
+    ) unless ? $!c-nonce;
 
     $!client-first-message-bare ~= "r=$!c-nonce";
 
@@ -220,7 +253,7 @@ $!c-nonce = Str;
     }
 
     else {
-      $mangled-password = Buf.new($!password.encode);
+      $mangled-password = self.mangle-password;
     }
 
     $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
@@ -309,6 +342,194 @@ $!c-nonce = Str;
     }
 
     $error;
+  }
+
+  #-----------------------------------------------------------------------------
+  method !server-side-process ( --> Str ) {
+
+    my Str $error = self!process-client-first;
+    if ?$error {
+      $!client-side.error($error);
+      return $error;
+    }
+
+    self!server-first-message;
+
+    $error = self!process-client-final;
+    if ?$error {
+      $!client-side.error($error);
+      return $error;
+    }
+
+    '';
+  }
+
+  #-----------------------------------------------------------------------------
+  method !process-client-first ( --> Str ) {
+
+    my Str $error = '';
+
+    # First get the gs2 header
+    for $!client-first-message.split( ',', 3) {
+
+      when /^ <[ny]> $/ {
+        $!gs2-bind-flag = $_;
+      }
+
+      when /^ 'p=' / {
+        $!gs2-bind-flag = $_;
+        $!gs2-bind-flag ~~ s/^ 'p=' //;
+      }
+
+      when /^ 'a=' / {
+        $!authzid = $_;
+        $!authzid ~~ s/^ 'a=' //;
+      }
+
+      when /^ $/ {
+        # no authzid
+      }
+
+      default {
+
+        for .split(',') {
+          when /^ 'n=' / {
+            $!username = $_;
+            $!username ~~ s/^ 'n=' //;
+#            $!username = self!decode-name($_);
+          }
+
+          when /^ 'r=' / {
+            $!c-nonce = $_;
+            $!c-nonce ~~ s/^ 'r=' //;
+          }
+
+          when /^ 'm=' / {
+            $!reserved-mext = $_;
+            $!reserved-mext ~~ s/^ 'm=' //;
+          }
+
+          when /^ 'p=' / {
+            $!gs2-bind-flag = $_;
+            $!gs2-bind-flag ~~ s/^ 'p=' //;
+          }
+
+          default {
+#TODO gather extensions
+          }
+        }
+      }
+    }
+
+    if ? $!username and ? $!authzid and $!server-side.^can('authzid') {
+      if not $!server-side.authzid( $!username, $!authzid) {
+        return "User '$!username' may not use rights of '$!authzid'";
+      }
+    }
+
+say "PC 1: $!username, $!c-nonce";
+
+    $error;
+  }
+
+  #-----------------------------------------------------------------------------
+  # server-first-message =
+  #                   [reserved-mext ","] nonce "," salt ","
+  #                   iteration-count ["," extensions]
+  method !server-first-message ( ) {
+  
+    $!s-nonce = encode-base64(
+      Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
+      :str
+    ) unless ? $!s-nonce;
+
+    if $!server-side.^can('salt') {
+      $!s-salt = $!server-side.salt;
+    }
+    
+    else {
+      $!s-salt = Buf.new((for ^$!s-nonce-size { (rand * 256).Int }));
+    }
+    
+    if $!server-side.^can('iterations') {
+      $!s-iter = $!server-side.iterations;
+    }
+    
+    else {
+      $!s-iter = 4096;
+    }
+
+    my $s1stm = ? $!reserved-mext ?? "m=$!reserved-mext," !! '';
+    $s1stm ~= "r=$!c-nonce$!s-nonce"
+              ~ ",s=" ~ encode-base64( $!s-salt, :str)
+              ~ ",i=$!s-iter";
+    $s1stm ~= $!extensions.elems
+              ?? ',' ~ ( map -> $k, $v { next if $k.chars > 1; "$k=$v"; },
+                   $!extensions.kv
+                 ).join(',')
+              !! '';
+
+    $!server-first-message = $s1stm;
+    $!client-final-message = $!server-side.server-first($!server-first-message);
+  }
+
+  #-----------------------------------------------------------------------------
+  method !process-client-final ( --> Str ) {
+
+    my Str $error = '';
+    
+    for $!client-final-message.split(',') {
+      when /^ 'c=' / {
+        $!channel-binding = $_;
+        $!channel-binding ~~ s/^ 'c=' //;
+      }
+      
+      when /^ 'r=' / {
+        my Str $nonce = $_;
+        $nonce ~~ s/^ 'r=' //;
+        $error = 'not a proper nonce' unless $nonce eq $c-nonce ~ $s-nonce;
+        return $error if ? $error;
+      }
+      
+      when /^ 'p=' / {
+
+.........
+        $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
+
+        $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
+        $!stored-key = $!CGH($!client-key);
+
+        # biws is from encode-base64( 'n,,', :str)
+    #TODO gs2-header [ cbind-data ]
+        $!channel-binding = "c=biws";
+        $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
+
+        $!auth-message = 
+          ( $!client-first-message-bare,
+            $!server-first-message,
+            $!client-final-without-proof
+          ).join(',');
+
+        $!client-signature = hmac( $!stored-key, $!auth-message, &$!CGH);
+
+        $!client-proof .= new;
+        for ^($!client-key.elems) -> $i {
+          $!client-proof[$i] = $!client-key[$i] +^ $!client-signature[$i];
+        }
+      }
+
+      default {
+#TODO extensions processing
+      }
+    }
+    
+    '';
+  }
+
+  #-----------------------------------------------------------------------------
+  method mangle-password ( Str:D $password --> Buf ) {
+
+    Buf.new($!password.encode);
   }
 
   #-----------------------------------------------------------------------------
