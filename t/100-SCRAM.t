@@ -17,6 +17,7 @@ use Auth::SCRAM;
 #
 class MyClient {
 
+  #-----------------------------------------------------------------------------
   # send client first message to server and return server response
   method client-first ( Str:D $client-first-message --> Str ) {
 
@@ -27,6 +28,7 @@ class MyClient {
     'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
   }
 
+  #-----------------------------------------------------------------------------
   method client-final ( Str:D $client-final-message --> Str ) {
   
     is $client-final-message,
@@ -40,12 +42,14 @@ class MyClient {
 
   # method mangle-password() is optional
 
+  #-----------------------------------------------------------------------------
   # method cleanup() is optional
   method cleanup (  ) {
 
     diag 'been here, done that';
   }
 
+  #-----------------------------------------------------------------------------
   method error ( Str:D $error-message --> Str ) {
 
   }
@@ -57,7 +61,7 @@ subtest {
   my Auth::SCRAM $sc .= new(
     :username<user>,
     :password<pencil>,
-    :client-side(MyClient.new),
+    :client-side(MyClient.new)
   );
   isa-ok $sc, Auth::SCRAM;
 

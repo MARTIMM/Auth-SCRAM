@@ -1,12 +1,6 @@
 use v6c;
 
-#use Auth::SCRAM::Client;
-#use Auth::SCRAM::Server;
-
-use Digest::HMAC;
-use OpenSSL::Digest;
-#use Base64;
-use PKCS5::PBKDF2;
+use Base64;
 
 #-------------------------------------------------------------------------------
 unit package Auth;
@@ -16,23 +10,15 @@ unit package Auth;
 #     and username/password/authzid must be kept the same. This saves time.
 
 #-------------------------------------------------------------------------------
-class SCRAM {
+role SCRAM::Client {
 
-  has Bool $!role-imported = False;
-  has PKCS5::PBKDF2 $!pbkdf2;
-  has Callable $!CGH;
-
-#`{{
   has Str $!username;
   has Str $!password;
   has Str $!authzid = '';
   has Bool $!strings-are-prepped = False;
 
-  # Name of digest, usable values are sha1 and sha256
-
   # Client side and server side communication. Pick one or the other.
   has $!client-side;
-  has $!server-side;
 
   # Set these values before creating the messages
   # Nonce size in bytes
@@ -68,184 +54,26 @@ class SCRAM {
   has Str $!server-final-message;
   has Buf $!server-key;
   has Buf $!server-signature;
-}}
 
   #-----------------------------------------------------------------------------
-  # Client side scram procedures
-  submethod BUILD (
-    Str:D :$username!,
-    Str:D :$password!,
-    Any:D :$client-side!,
-    Str :$authzid,
-    Callable :$CGH
-  ) {
-
-    $!CGH = $CGH // &sha1;
-    $!pbkdf2 .= new(:$CGH);
-
-    die 'message object misses some methods'
-      unless self!test-methods(
-        $client-side,
-        <client-first client-final error>
-      );
-
-    if not $!role-imported {
-      need Auth::SCRAM::Client;
-      import Auth::SCRAM::Client;
-      $!role-imported = True;
-    }
-    self does Auth::SCRAM::Client;
-    self.init( :$username, :$password, :$authzid, :$client-side);
-  }
-
-  #-----------------------------------------------------------------------------
-  # Server side scram procedures
-  multi submethod xBUILD (
-    Str:D :$username!,
-    Str:D :$password!,
-    Any:D :$server-side!,
-    Str :$authzid,
-    Callable :$CGH = &sha1
-  ) {
-
-    $!CGH = $CGH;
-    $!pbkdf2 .= new(:$CGH);
-
-    die 'Server object misses some methods'
-      unless self!test-methods(
-        $server-side,
-        <server-first server-final error>
-      );
-
-    if not $!role-imported {
-      need Auth::SCRAM::Server;
-      import Auth::SCRAM::Server;
-      $!role-imported = True;
-    }
-    self does Auth::SCRAM::Server;
-    self.init( :$username, :$password, :$authzid, :$server-side);
-  }
-
-  #-----------------------------------------------------------------------------
-  # Server side scram procedures for basic credential parameter generation
-  multi submethod xBUILD (
-    Callable :$CGH = &sha1,
-    Any:D :$server-side!
-  ) {
-
-    $!CGH = $CGH;
-    $!pbkdf2 .= new(:$CGH);
-
-    if not $!role-imported {
-      need Auth::SCRAM::Server;
-      import Auth::SCRAM::Server;
-      $!role-imported = True;
-    }
-    self does Auth::SCRAM::Server;
-    self.init(:$server-side);
-  }
-
-#`{{
-  #-----------------------------------------------------------------------------
-  submethod BUILD (
+  method init (
     Str:D :$username!,
     Str:D :$password!,
     Str :$authzid,
-
-    Callable :$CGH = &sha1,
-    :$client-side,
-    :$server-side,
-    Bool :$basic-use = False
+    :$client-side!
   ) {
 
-#    $!username = $username;
-#    $!password = $password;
-#    $!authzid = $authzid;
-
-    $!CGH = $CGH;
-    $!pbkdf2 .= new(:$CGH);
-
-    # Check client or server object capabilities
-    if $client-side.defined {
-      die 'Only a client or server object must be chosen'
-        if $server-side.defined;
-
-      die 'message object misses some methods'
-        unless self!test-methods(
-          $client-side,
-          <client-first client-final error>
-        );
-
-      if not $!role-imported {
-        need Auth::SCRAM::Client;
-        import Auth::SCRAM::Client;
-        $!role-imported = True;
-      }
-      self does Auth::SCRAM::Client;
-      self.init( :$username, :$password, :$authzid, :$client-side);
-    }
-
-
-
-    elsif $server-side.defined {
-      die 'Server object misses some methods'
-        unless $basic-use
-        or self!test-methods(
-          $server-side,
-          <server-first server-final error>
-        );
-
-      if not $!role-imported {
-        need Auth::SCRAM::Server;
-        import Auth::SCRAM::Server;
-        $!role-imported = True;
-      }
-      self does Auth::SCRAM::Server;
-      self.init( :$username, :$password, :$authzid, :$server-side);
-    }
-
-
-
-    else {
-      die 'At least a client or server object must be chosen';
-    }
-  }
-}}
-
-
-#`{{
-  #-----------------------------------------------------------------------------
-  method start-scram( Str :$client-first-message --> Str ) {
-
-    my Str $error = '';
-
-    if $!client-side.defined {
-      $error = self!client-side-process;
-    }
-
-    else {
-say "Server side processing";
-
-      if ? $client-first-message {
-        $!client-first-message = $client-first-message;
-        $error = self!server-side-process;
-      }
-
-      else {
-        $error = 'No client first message provided';
-      }
-    }
-
-    $error;
+    $!username = $username;
+    $!password = $password;
+    $!authzid = $authzid;
+    $!client-side = $client-side;
   }
 
   #-----------------------------------------------------------------------------
-  method !client-side-process ( ) {
+  method start-scram( --> Str ) {
 
-    # Can only done from client so check client object
-    die 'No client object defined' unless $!client-side.defined;
-
-    # Prepare message and send to server. Returns server-first-message
+    # Prepare message which must go to the server. Server returns a
+    # its first server message.
     self!client-first-message;
     $!server-first-message = $!client-side.client-first($!client-first-message);
 #say "server first message: ", $!server-first-message;
@@ -256,7 +84,7 @@ say "Server side processing";
       return $error;
     }
 
-    # Prepare for second round ... `doiinggg' :-P
+    # Prepare the second and final message. Server returns its final message
     self!client-final-message;
     $!server-final-message = $!client-side.client-final($!client-final-message);
 #say "server final message: ", $!server-final-message;
@@ -276,9 +104,9 @@ say "Server side processing";
     # check state of strings
     unless $!strings-are-prepped {
 
-      $!username = self!saslPrep($!username);
-#      $!password = self!saslPrep($!password);
-      $!authzid = self!saslPrep($!authzid) if ?$!authzid;
+      $!username = self.saslPrep($!username);
+      $!password = self.saslPrep($!password);
+      $!authzid = self.saslPrep($!authzid) if ?$!authzid;
       $!strings-are-prepped = True;
     }
 
@@ -345,13 +173,15 @@ $!c-nonce = Str;
     }
 
     else {
-      $mangled-password = self.mangle-password($password);
+      $mangled-password = self.mangle-password($!password);
     }
 
-    $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
+    $!salted-password = self.derive-key(
+      $mangled-password, $!s-salt, $!s-iter
+    );
 
-    $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
-    $!stored-key = $!CGH($!client-key);
+    $!client-key = self.client-key($!salted-password);
+    $!stored-key = self.stored-key($!client-key);
 
     # biws is from encode-base64( 'n,,', :str)
 #TODO gs2-header [ cbind-data ]
@@ -364,7 +194,7 @@ $!c-nonce = Str;
         $!client-final-without-proof
       ).join(',');
 
-    $!client-signature = hmac( $!stored-key, $!auth-message, &$!CGH);
+    $!client-signature = self.client-signature( $!stored-key, $!auth-message);
 
     $!client-proof .= new;
     for ^($!client-key.elems) -> $i {
@@ -421,8 +251,8 @@ $!c-nonce = Str;
       my Str $sv = $!server-final-message;
       $sv ~~ s/^ 'v=' //;
 
-      $!server-key = hmac( $!salted-password, 'Server Key', &$!CGH);
-      $!server-signature = hmac( $!server-key, $!auth-message, &$!CGH);
+      $!server-key = self.server-key($!salted-password);
+      $!server-signature = self.server-signature( $!server-key, $!auth-message);
 
       if encode-base64( $!server-signature, :str) ne $sv {
         $error = 'Server verification failed';
@@ -436,6 +266,8 @@ $!c-nonce = Str;
     $error;
   }
 
+
+#`{{
   #-----------------------------------------------------------------------------
   method !server-side-process ( --> Str ) {
 
@@ -529,7 +361,7 @@ say "PC 1: $!username, $!c-nonce";
   #                   [reserved-mext ","] nonce "," salt ","
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
-
+  
     $!s-nonce = encode-base64(
       Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
       :str
@@ -538,15 +370,15 @@ say "PC 1: $!username, $!c-nonce";
     if $!server-side.^can('salt') {
       $!s-salt = $!server-side.salt;
     }
-
+    
     else {
       $!s-salt = Buf.new((for ^$!s-nonce-size { (rand * 256).Int }));
     }
-
+    
     if $!server-side.^can('iterations') {
       $!s-iter = $!server-side.iterations;
     }
-
+    
     else {
       $!s-iter = 4096;
     }
@@ -569,20 +401,20 @@ say "PC 1: $!username, $!c-nonce";
   method !process-client-final ( --> Str ) {
 
     my Str $error = '';
-
+    
     for $!client-final-message.split(',') {
       when /^ 'c=' / {
         $!channel-binding = $_;
         $!channel-binding ~~ s/^ 'c=' //;
       }
-
+      
       when /^ 'r=' / {
         my Str $nonce = $_;
         $nonce ~~ s/^ 'r=' //;
         $error = 'not a proper nonce' unless $nonce eq $!c-nonce ~ $!s-nonce;
         return $error if ? $error;
       }
-
+      
       when /^ 'p=' / {
 
 #.........
@@ -594,7 +426,7 @@ say "PC 1: $!username, $!c-nonce";
         }
 
         else {
-          $mangled-password = self.mangle-password($password);
+          $mangled-password = self.mangle-password($!password);
         }
 
         $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
@@ -625,58 +457,21 @@ say "PC 1: $!username, $!c-nonce";
 #TODO extensions processing
       }
     }
-
+    
     '';
   }
 }}
-
+#`{{
   #-----------------------------------------------------------------------------
   method mangle-password ( Str:D $password --> Buf ) {
 
-    Buf.new($password.encode);
+    Buf.new($!password.encode);
   }
 
   #-----------------------------------------------------------------------------
-  method derive-key ( Buf $mangled-password, Buf $salt, Int $iter --> Buf ) {
-
-    $!pbkdf2.derive( $mangled-password, $salt, $iter);
-  }
-
-  #-----------------------------------------------------------------------------
-  method client-key ( Buf $salted-password --> Buf ) {
-
-    hmac( $salted-password, 'Client Key', &$!CGH);
-  }
-
-  #-----------------------------------------------------------------------------
-  method stored-key ( Buf $client-key --> Buf ) {
-
-    $!CGH($client-key);
-  }
-
-  #-----------------------------------------------------------------------------
-  method client-signature ( Buf $stored-key, Str $auth-message --> Buf ) {
-
-    hmac( $stored-key, $auth-message, &$!CGH);
-  }
-
-  #-----------------------------------------------------------------------------
-  method server-key ( Buf $salted-password --> Buf ) {
-
-    hmac( $salted-password, 'Server Key', &$!CGH);
-  }
-
-  #-----------------------------------------------------------------------------
-  method server-signature ( Buf $server-key, Str $auth-message --> Buf ) {
-
-    hmac( $server-key, $auth-message, &$!CGH);
-  }
-
-  #-----------------------------------------------------------------------------
-  method saslPrep ( Str:D $text --> Str ) {
+  method !saslPrep ( Str:D $text --> Str ) {
 
     my Str $prepped-text = $text;
-
 #TODO prep string
 
     # Some character protection changes
@@ -712,4 +507,5 @@ say "PC 1: $!username, $!c-nonce";
 
     $all-there;
   }
+}}
 }
