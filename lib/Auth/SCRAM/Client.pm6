@@ -163,21 +163,10 @@ $!c-nonce = Str;
   #-----------------------------------------------------------------------------
   method !client-final-message ( ) {
 
-    # Using named arguments, the clients object doesn't need to
-    # support all variables as long as a Buf is returned
-    my Buf $mangled-password;
-    if $!client-side.^can('mangle-password') {
-      $mangled-password = $!client-side.mangle-password(
-        :$!username, :$!password, :$!authzid
-      );
-    }
-
-    else {
-      $mangled-password = self.mangle-password($!password);
-    }
-
     $!salted-password = self.derive-key(
-      $mangled-password, $!s-salt, $!s-iter
+      :$!username, :$!password, :$!authzid,
+      :salt($!s-salt), :iter($!s-iter),
+      :helper-object($!client-side)
     );
 
     $!client-key = self.client-key($!salted-password);

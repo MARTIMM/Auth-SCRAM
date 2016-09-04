@@ -57,6 +57,7 @@ role SCRAM::Server {
   has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
+#`{{
   multi method init (
     Str:D :$username!,
     Str:D :$password!,
@@ -65,42 +66,22 @@ role SCRAM::Server {
   ) {
 
     $!username = $username;
-    $!password = $password;
+#    $!password = $password;
     $!authzid = $authzid;
     $!server-side = $server-side;
   }
-
+}}
   #-----------------------------------------------------------------------------
-  # For basic use
-  multi method init ( :$server-side! ) {
+#  multi method init ( :$server-side! ) {
+  method init ( :$server-side! ) {
 
     $!server-side = $server-side;
   }
 
   #-----------------------------------------------------------------------------
-  method start-scram( Str:D :$client-first-message! --> Str ) {
+  method start-scram( Str:D $client-first-message! --> Str ) {
 
     $!client-first-message = $client-first-message;
-    my Str $error = self!process-client-first;
-    if ?$error {
-      $!client-side.error($error);
-      return $error;
-    }
-
-    self!server-first-message;
-
-    $error = self!process-client-final;
-    if ?$error {
-      $!client-side.error($error);
-      return $error;
-    }
-
-    '';
-  }
-
-  #-----------------------------------------------------------------------------
-  method !server-side-process ( --> Str ) {
-
     my Str $error = self!process-client-first;
     if ?$error {
       $!client-side.error($error);
@@ -191,27 +172,52 @@ say "PC 1: $!username, $!c-nonce";
   #                   [reserved-mext ","] nonce "," salt ","
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
-  
+
+#`{{
+    if $!server-side.^can('nonce') {
+      $!s-nonce = $!server-side.nonce;
+    }
+
+    else {
+      $!s-nonce = encode-base64(
+        Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
+        :str
+      );
+    }
+}}
+    my Hash $credentials = $!server-side.credentials(
+      $!username, $!authzid
+    );
+    
+    $!s-salt = Buf.new(decode-base64($credentials<salt>));
+    $!s-iter = $credentials<iter>;
+
+#        $!client-key = $credentials<>;
+#        $!stored-key = Buf.new(decode-base64($credentials<stored-key>));
+#        $!server-key = Buf.new(decode-base64($credentials<server-key>));
+
     $!s-nonce = encode-base64(
       Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
       :str
     ) unless ? $!s-nonce;
 
+#`{{
     if $!server-side.^can('salt') {
       $!s-salt = $!server-side.salt;
     }
-    
+
     else {
       $!s-salt = Buf.new((for ^$!s-nonce-size { (rand * 256).Int }));
     }
-    
+
     if $!server-side.^can('iterations') {
       $!s-iter = $!server-side.iterations;
     }
-    
+
     else {
       $!s-iter = 4096;
     }
+}}
 
     my $s1stm = ? $!reserved-mext ?? "m=$!reserved-mext," !! '';
     $s1stm ~= "r=$!c-nonce$!s-nonce"
@@ -231,67 +237,40 @@ say "PC 1: $!username, $!c-nonce";
   method !process-client-final ( --> Str ) {
 
     my Str $error = '';
-    
+
     for $!client-final-message.split(',') {
       when /^ 'c=' / {
         $!channel-binding = $_;
         $!channel-binding ~~ s/^ 'c=' //;
       }
-      
+
       when /^ 'r=' / {
         my Str $nonce = $_;
         $nonce ~~ s/^ 'r=' //;
         $error = 'not a proper nonce' unless $nonce eq $!c-nonce ~ $!s-nonce;
         return $error if ? $error;
       }
-      
+
       when /^ 'p=' / {
-
-#.........
-        my Buf $mangled-password;
-        if $!client-side.^can('mangle-password') {
-          $mangled-password = $!client-side.mangle-password(
-            :$!username, :$!password, :$!authzid
-          );
-        }
-
-        else {
-          $mangled-password = self.mangle-password($!password);
-        }
-
-        $!salted-password = self.derive-key(
-          $mangled-password,
-          $!s-salt,
-          $!s-iter
+      
+        my Str $proof = $_;
+        $proof ~~ s/^ 'p=' //;
+        $!client-proof = Buf.new(decode-base64($proof));
+        
+        my Hash $credentials = $!server-side.credentials(
+          $!username, $!authzid
         );
 
-        $!client-key = self.client-key($!salted-password);
-        $!stored-key = self.stored-key($!client-key);
-
-        # biws is from encode-base64( 'n,,', :str)
-    #TODO gs2-header [ cbind-data ]
-        $!channel-binding = "c=biws";
-        $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
-
-        $!auth-message = 
-          ( $!client-first-message-bare,
-            $!server-first-message,
-            $!client-final-without-proof
-          ).join(',');
-
-        $!client-signature = self.client-signature($!stored-key);
-
-        $!client-proof .= new;
-        for ^($!client-key.elems) -> $i {
-          $!client-proof[$i] = $!client-key[$i] +^ $!client-signature[$i];
-        }
+#        $!client-key = $credentials<>;
+        $!stored-key = Buf.new(decode-base64($credentials<stored-key>));
+        $!server-key = Buf.new(decode-base64($credentials<server-key>));
       }
 
       default {
 #TODO extensions processing
       }
     }
-    
+
     '';
   }
 

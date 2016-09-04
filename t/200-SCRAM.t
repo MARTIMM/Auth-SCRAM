@@ -5,38 +5,7 @@ use Test;
 
 use Auth::SCRAM;
 #use OpenSSL::Digest;
-#use Base64;
-
-#-------------------------------------------------------------------------------
-# A user credentials database used to store added users to the system
-# Credentials must be read from somewhere and saved to the same somewhere.
-class Credentials {
-  has Hash $!credentials-db;
-  has Auth::SCRAM $!scram;
-
-  #-----------------------------------------------------------------------------
-  submethod BUILD ( Str:D :$username, Str:D :$password ) {
-
-    $!scram .= new(
-      :username($username),
-      :password($password),
-      :server-side(self),
-      :basic-use
-    );
-
-    isa-ok $!scram, Auth::SCRAM;
-
-  }
-
-  #-----------------------------------------------------------------------------
-  method add-user ( $username, $password ) {
-
-    my Buf $salt = self.salt;
-    my Int $iter = self.iterations;
-    my Buf $mangled-password = $!scram.mangle-password($password);
-
-  }
-}
+use Base64;
 
 #-------------------------------------------------------------------------------
 # Example from rfc
@@ -46,22 +15,75 @@ class Credentials {
 #    p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
 # S: v=rmF9pqV8S7suAoZWja4dJRkFsKQ=
 #
-class MyServer {
+#-------------------------------------------------------------------------------
+# A user credentials database used to store added users to the system
+# Credentials must be read from somewhere and saved to the same somewhere.
+class Credentials {
+  has Hash $!credentials-db;
+  has Auth::SCRAM $!scram handles <start-scram s-nonce-size s-nonce>;
 
   #-----------------------------------------------------------------------------
-  submethod BUILD ( Str:D :$username, Str:D :$password ) {
+  submethod BUILD ( ) {
 
-    my Auth::SCRAM $sc .= new(
-      :username($username),
-      :password($password),
-      :server-side(self)
+#    $!scram .= new( :server-side(self), :basic-use);
+    $!scram .= new(:server-side(self));
+    isa-ok $!scram, Auth::SCRAM;
+  }
+
+  #-----------------------------------------------------------------------------
+  method add-user ( $username, $password ) {
+
+    my Buf $salt = self.salt;
+    my Int $iter = self.iterations;
+
+    my Buf $salted-password = $!scram.derive-key(
+      :$username, :$password,
+      :salt($salt), :iter($iter),
+      :helper-object(self),
     );
 
+    my Buf $client-key = $!scram.client-key($salted-password);
+    my Buf $stored-key = $!scram.stored-key($client-key);
+    my Buf $server-key = $!scram.server-key($salted-password);
 
-    $sc.s-nonce-size = 24;
-    $sc.s-nonce = '3rfcNHYJY1ZVvWVs7j';
-    
+    $!credentials-db{$username} = %(
+      iter => $iter,
+      salt => encode-base64( $salt, :str),
+      stored-key => encode-base64( $stored-key, :str),
+      server-key => encode-base64( $server-key, :str)
+    );
+say $!credentials-db.perl;
   }
+
+  #-----------------------------------------------------------------------------
+  method credentials ( Str $username, Str $authzid --> Hash ) {
+
+#TODO what to do with authzid
+    return $!credentials-db{$username};
+  }
+
+  #-----------------------------------------------------------------------------
+  # method salt() is optional
+  method salt ( --> Buf ) {
+
+    Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118);
+  }
+
+  #-----------------------------------------------------------------------------
+  # method nonce() is optional
+  method nonce ( --> Buf ) {
+
+    Buf.new( 222, 183, 220, 52, 118, 9, 99, 86, 85, 189, 101, 108, 238);
+  }
+
+  #-----------------------------------------------------------------------------
+  # method iterations() is optional
+  method iterations ( --> Int ) {
+
+    4096;
+  }
+
+  # method mangle-password() is optional
 
   #-----------------------------------------------------------------------------
   # return server first message to client, then receive and
@@ -85,25 +107,9 @@ class MyServer {
   }
 
   #-----------------------------------------------------------------------------
-  # method auth-id() is optional and called when gs2 header provides it
-  method authzid ( Str $username, Str $authzid --> Bool ) {
+  method error ( Str:D $message --> Str ) {
 
   }
-
-  #-----------------------------------------------------------------------------
-  # method salt() is optional
-  method salt ( --> Buf ) {
-
-    Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118);
-  }
-
-  #-----------------------------------------------------------------------------
-  method iterations() {
-
-    4096;
-  }
-
-  # method mangle-password() is optional
 
   #-----------------------------------------------------------------------------
   # method cleanup() is optional
@@ -111,27 +117,30 @@ class MyServer {
 
     diag 'been here, done that';
   }
-
-  #-----------------------------------------------------------------------------
-  method error ( Str:D $message --> Str ) {
-
-  }
 }
 
 #-------------------------------------------------------------------------------
 subtest {
 
-  # Preparations
-  my MyServer $ms .= new(
-    :username<user>,
-    :password<pencil>
-  );
+  # Server actions in advance ...
+  # - set up shop
+  my Credentials $crd .= new;
 
-  # Server listens on socket and gets request to process client first message
-#  my Str $client-first-message = 'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL';
+  # - set up socket
+  # - listen to socket and wait
+  # - input from client
+  # - fork process, parent returns to listening on socket
+  # - child processes input as commands
 
-#  my $error = $sc.start-scram(:$client-first-message);
-#  is $error, '', "Empty error: '$error'";
+  # - command is add a user
+  $crd.add-user( 'user', 'pencil');
+  $crd.add-user( 'gebruiker', 'potlood');
+  $crd.add-user( 'utilisateur', 'crayon');
+
+  # - command autenticate as 'user'/'pencil'
+  my Str $client-first-message = 'n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL';
+  $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
+  $crd.start-scram($client-first-message);
 
 }, 'SCRAM tests';
 

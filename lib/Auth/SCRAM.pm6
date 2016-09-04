@@ -192,7 +192,7 @@ class SCRAM {
 
 
     elsif $server-side.defined {
-      if $basic-use {
+#      if $basic-use {
 
         if not $!role-imported {
           need Auth::SCRAM::Server;
@@ -201,9 +201,9 @@ class SCRAM {
         }
         self does Auth::SCRAM::Server;
         self.init(:$server-side);
-      }
+#      }
 
-
+#`{{
       else {
 
         die 'Server object misses some methods'
@@ -220,6 +220,7 @@ class SCRAM {
         self does Auth::SCRAM::Server;
         self.init( :$username, :$password, :$authzid, :$server-side);
       }
+}}
     }
 
 
@@ -648,13 +649,25 @@ say "PC 1: $!username, $!c-nonce";
 }}
 
   #-----------------------------------------------------------------------------
-  method mangle-password ( Str:D $password --> Buf ) {
+  method derive-key (
+    Str :$username, Str:D :$password, Str :$authzid,
+    Buf:D :$salt, Int:D :$iter,
+    Any:D :$helper-object
+    --> Buf
+  ) {
 
-    Buf.new($password.encode);
-  }
+    # Using named arguments, the clients object doesn't need to
+    # support all variables as long as a Buf is returned
+    my Buf $mangled-password;
+    if $helper-object.^can('mangle-password') {
+      $mangled-password = $helper-object.mangle-password(
+        :$username, :$password, :$authzid
+      );
+    }
 
-  #-----------------------------------------------------------------------------
-  method derive-key ( Buf $mangled-password, Buf $salt, Int $iter --> Buf ) {
+    else {
+      $mangled-password = Buf.new($password.encode);
+    }
 
     $!pbkdf2.derive( $mangled-password, $salt, $iter);
   }
