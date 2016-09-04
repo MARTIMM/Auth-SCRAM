@@ -57,7 +57,7 @@ role SCRAM::Server {
   has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
-  method init (
+  multi method init (
     Str:D :$username!,
     Str:D :$password!,
     Str :$authzid,
@@ -67,6 +67,13 @@ role SCRAM::Server {
     $!username = $username;
     $!password = $password;
     $!authzid = $authzid;
+    $!server-side = $server-side;
+  }
+
+  #-----------------------------------------------------------------------------
+  # For basic use
+  multi method init ( :$server-side! ) {
+
     $!server-side = $server-side;
   }
 

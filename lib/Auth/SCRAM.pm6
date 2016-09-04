@@ -70,9 +70,10 @@ class SCRAM {
   has Buf $!server-signature;
 }}
 
+#`{{ # Bug in perl6 multis with role
   #-----------------------------------------------------------------------------
   # Client side scram procedures
-  submethod BUILD (
+  multi submethod BUILD (
     Str:D :$username!,
     Str:D :$password!,
     Any:D :$client-side!,
@@ -100,7 +101,7 @@ class SCRAM {
 
   #-----------------------------------------------------------------------------
   # Server side scram procedures
-  multi submethod xBUILD (
+  multi submethod BUILD (
     Str:D :$username!,
     Str:D :$password!,
     Any:D :$server-side!,
@@ -128,7 +129,7 @@ class SCRAM {
 
   #-----------------------------------------------------------------------------
   # Server side scram procedures for basic credential parameter generation
-  multi submethod xBUILD (
+  multi submethod BUILD (
     Callable :$CGH = &sha1,
     Any:D :$server-side!
   ) {
@@ -144,12 +145,13 @@ class SCRAM {
     self does Auth::SCRAM::Server;
     self.init(:$server-side);
   }
+}}
 
-#`{{
+#`{{}}
   #-----------------------------------------------------------------------------
   submethod BUILD (
-    Str:D :$username!,
-    Str:D :$password!,
+    Str :$username,
+    Str :$password,
     Str :$authzid,
 
     Callable :$CGH = &sha1,
@@ -167,6 +169,9 @@ class SCRAM {
 
     # Check client or server object capabilities
     if $client-side.defined {
+      die 'No username and/or password provided'
+        unless ? $username and ? $password;
+
       die 'Only a client or server object must be chosen'
         if $server-side.defined;
 
@@ -186,31 +191,43 @@ class SCRAM {
     }
 
 
-
     elsif $server-side.defined {
-      die 'Server object misses some methods'
-        unless $basic-use
-        or self!test-methods(
-          $server-side,
-          <server-first server-final error>
-        );
+      if $basic-use {
 
-      if not $!role-imported {
-        need Auth::SCRAM::Server;
-        import Auth::SCRAM::Server;
-        $!role-imported = True;
+        if not $!role-imported {
+          need Auth::SCRAM::Server;
+          import Auth::SCRAM::Server;
+          $!role-imported = True;
+        }
+        self does Auth::SCRAM::Server;
+        self.init(:$server-side);
       }
-      self does Auth::SCRAM::Server;
-      self.init( :$username, :$password, :$authzid, :$server-side);
-    }
 
+
+      else {
+
+        die 'Server object misses some methods'
+          unless self!test-methods(
+            $server-side,
+            <server-first server-final error>
+          );
+
+        if not $!role-imported {
+          need Auth::SCRAM::Server;
+          import Auth::SCRAM::Server;
+          $!role-imported = True;
+        }
+        self does Auth::SCRAM::Server;
+        self.init( :$username, :$password, :$authzid, :$server-side);
+      }
+    }
 
 
     else {
       die 'At least a client or server object must be chosen';
     }
   }
-}}
+
 
 
 #`{{

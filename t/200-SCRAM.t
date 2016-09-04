@@ -24,6 +24,8 @@ class Credentials {
       :basic-use
     );
 
+    isa-ok $!scram, Auth::SCRAM;
+
   }
 
   #-----------------------------------------------------------------------------
@@ -33,7 +35,6 @@ class Credentials {
     my Int $iter = self.iterations;
     my Buf $mangled-password = $!scram.mangle-password($password);
 
-    isa-ok $sc, Auth::SCRAM;
   }
 }
 
@@ -96,7 +97,11 @@ class MyServer {
     Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118);
   }
 
-  # method iterations() is optional
+  #-----------------------------------------------------------------------------
+  method iterations() {
+
+    4096;
+  }
 
   # method mangle-password() is optional
 
