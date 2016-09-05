@@ -57,25 +57,41 @@ role SCRAM::Server {
   has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
-#`{{
-  multi method init (
-    Str:D :$username!,
-    Str:D :$password!,
-    Str :$authzid,
-    :$server-side!
-  ) {
-
-    $!username = $username;
-#    $!password = $password;
-    $!authzid = $authzid;
-    $!server-side = $server-side;
-  }
-}}
-  #-----------------------------------------------------------------------------
-#  multi method init ( :$server-side! ) {
   method init ( :$server-side! ) {
 
     $!server-side = $server-side;
+
+    die 'message object misses some methods'
+      unless self.test-methods(
+        $server-side,
+        < credentials server-first server-final error >
+      );
+  }
+
+  #-----------------------------------------------------------------------------
+  method generate-user-credentials (
+    Str :$username, Str :$password,
+    Buf :$salt, Int :$iter,
+    Any :$helper-object
+
+    --> Hash
+  ) {
+
+    my Buf $salted-password = self.derive-key(
+      :$username, :$password,
+      :$salt, :$iter,
+      :$helper-object,
+    );
+
+    my Buf $client-key = self.client-key($salted-password);
+    my Buf $stored-key = self.stored-key($client-key);
+    my Buf $server-key = self.server-key($salted-password);
+
+    %( iter => $iter,
+       salt => encode-base64( $salt, :str),
+       stored-key => encode-base64( $stored-key, :str),
+       server-key => encode-base64( $server-key, :str)
+    );
   }
 
   #-----------------------------------------------------------------------------
@@ -88,13 +104,29 @@ role SCRAM::Server {
       return $error;
     }
 
-    self!server-first-message;
+    $error = self!server-first-message;
+    if ?$error {
+      $!client-side.error($error);
+      return $error;
+    }
+
+    $!client-final-message = $!server-side.server-first($!server-first-message);
 
     $error = self!process-client-final;
     if ?$error {
       $!client-side.error($error);
       return $error;
     }
+
+    $error = $!server-side.server-final(
+      'v=' ~ encode-base64( $!server-signature, :str)
+    );
+    if ?$error {
+      $!client-side.error($error);
+      return $error;
+    }
+
+    $!client-side.cleanup if $!client-side.^can('cleanup');
 
     '';
   }
@@ -126,6 +158,8 @@ role SCRAM::Server {
       }
 
       default {
+
+        $!client-first-message-bare = $_;
 
         for .split(',') {
           when /^ 'n=' / {
@@ -162,8 +196,6 @@ role SCRAM::Server {
       }
     }
 
-say "PC 1: $!username, $!c-nonce";
-
     $error;
   }
 
@@ -173,51 +205,20 @@ say "PC 1: $!username, $!c-nonce";
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
 
-#`{{
-    if $!server-side.^can('nonce') {
-      $!s-nonce = $!server-side.nonce;
-    }
+    my Str $error = '';
 
-    else {
-      $!s-nonce = encode-base64(
-        Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
-        :str
-      );
-    }
-}}
     my Hash $credentials = $!server-side.credentials(
       $!username, $!authzid
     );
-    
+    return 'authentication failure' unless $credentials.elems;
+
     $!s-salt = Buf.new(decode-base64($credentials<salt>));
     $!s-iter = $credentials<iter>;
-
-#        $!client-key = $credentials<>;
-#        $!stored-key = Buf.new(decode-base64($credentials<stored-key>));
-#        $!server-key = Buf.new(decode-base64($credentials<server-key>));
 
     $!s-nonce = encode-base64(
       Buf.new((for ^$!s-nonce-size { (rand * 256).Int })),
       :str
     ) unless ? $!s-nonce;
-
-#`{{
-    if $!server-side.^can('salt') {
-      $!s-salt = $!server-side.salt;
-    }
-
-    else {
-      $!s-salt = Buf.new((for ^$!s-nonce-size { (rand * 256).Int }));
-    }
-
-    if $!server-side.^can('iterations') {
-      $!s-iter = $!server-side.iterations;
-    }
-
-    else {
-      $!s-iter = 4096;
-    }
-}}
 
     my $s1stm = ? $!reserved-mext ?? "m=$!reserved-mext," !! '';
     $s1stm ~= "r=$!c-nonce$!s-nonce"
@@ -230,13 +231,12 @@ say "PC 1: $!username, $!c-nonce";
               !! '';
 
     $!server-first-message = $s1stm;
-    $!client-final-message = $!server-side.server-first($!server-first-message);
+
+    '';
   }
 
   #-----------------------------------------------------------------------------
   method !process-client-final ( --> Str ) {
-
-    my Str $error = '';
 
     for $!client-final-message.split(',') {
       when /^ 'c=' / {
@@ -247,23 +247,39 @@ say "PC 1: $!username, $!c-nonce";
       when /^ 'r=' / {
         my Str $nonce = $_;
         $nonce ~~ s/^ 'r=' //;
-        $error = 'not a proper nonce' unless $nonce eq $!c-nonce ~ $!s-nonce;
-        return $error if ? $error;
+        return 'not a proper nonce' if $nonce ne $!c-nonce ~ $!s-nonce;
       }
 
       when /^ 'p=' / {
-      
+
         my Str $proof = $_;
+        my $client-final-without-proof = $!client-final-message;
+        $client-final-without-proof ~~ s/ ',' $proof $//;
+
+        $!auth-message = [~] $!client-first-message-bare,
+                             ',', $!server-first-message,
+                             ',', $client-final-without-proof;
+
         $proof ~~ s/^ 'p=' //;
         $!client-proof = Buf.new(decode-base64($proof));
-        
+
+#say "AML $!auth-message";
+
         my Hash $credentials = $!server-side.credentials(
           $!username, $!authzid
         );
+        return 'authentication failure' unless $credentials.elems;
 
-#        $!client-key = $credentials<>;
         $!stored-key = Buf.new(decode-base64($credentials<stored-key>));
+        $!client-signature = self.client-signature( $!stored-key, $!auth-message);
+        $!client-key = self.XOR( $!client-proof, $!client-signature);
+
+        my Str $st-key = encode-base64( self.stored-key($!client-key), :str);
+#say "Stored-keys: $st-key, $credentials<stored-key>";
+        return 'authentication error' if $st-key ne $credentials<stored-key>;
+
         $!server-key = Buf.new(decode-base64($credentials<server-key>));
+        $!server-signature = self.server-signature( $!server-key, $!auth-message);
       }
 
       default {
@@ -273,254 +289,4 @@ say "PC 1: $!username, $!c-nonce";
 
     '';
   }
-
-
-#`{{
-  #-----------------------------------------------------------------------------
-  method !client-side-process ( ) {
-
-    # Can only done from client so check client object
-    die 'No client object defined' unless $!client-side.defined;
-
-    # Prepare message and send to server. Returns server-first-message
-    self!client-first-message;
-    $!server-first-message = $!client-side.client-first($!client-first-message);
-#say "server first message: ", $!server-first-message;
-
-    my Str $error = self!process-server-first;
-    if ?$error {
-      $!client-side.error($error);
-      return $error;
-    }
-
-    # Prepare for second round ... `doiinggg' :-P
-    self!client-final-message;
-    $!server-final-message = $!client-side.client-final($!client-final-message);
-#say "server final message: ", $!server-final-message;
-    $error = self!verify-server;
-    if ?$error {
-      $!client-side.error($error);
-      return $error;
-    }
-
-    $!client-side.cleanup if $!client-side.^can('cleanup');
-    '';
-  }
-
-  #-----------------------------------------------------------------------------
-  method !client-first-message ( ) {
-
-    # check state of strings
-    unless $!strings-are-prepped {
-
-      $!username = self!saslPrep($!username);
-#      $!password = self!saslPrep($!password);
-      $!authzid = self!saslPrep($!authzid) if ?$!authzid;
-      $!strings-are-prepped = True;
-    }
-
-    self!set-gs2header;
-#say "gs2 header: ", $!gs2-header;
-
-    self!set-client-first;
-#say "client first message bare: ", $!client-first-message-bare;
-#say "client first message: ", $!client-first-message-bare;
-
-  }
-
-  #-----------------------------------------------------------------------------
-  method !set-gs2header ( ) {
-
-    my $aid = ($!authzid.defined and $!authzid.chars) ?? "a=$!authzid" !! '';
-
-    $!gs2-bind-flag = 'n';
-    $!gs2-header = "$!gs2-bind-flag,$aid";
-  }
-
-  #-----------------------------------------------------------------------------
-  method !set-client-first ( ) {
-
-    $!client-first-message-bare = 
-      ( $!reserved-mext.defined and $!reserved-mext.chars )
-        ?? "m=$!reserved-mext,"
-        !! '';
-
-    $!client-first-message-bare ~= "n=$!username,";
-
-    $!c-nonce = encode-base64(
-      Buf.new((for ^$!c-nonce-size { (rand * 256).Int })),
-      :str
-    ) unless ? $!c-nonce;
-
-    $!client-first-message-bare ~= "r=$!c-nonce";
-
-# Not needed anymore, necessary to reset to prevent reuse by hackers
-# So when user needs its own nonce again, set it before starting scram.
-$!c-nonce = Str;
-#TODO used later to check returned server nonce, so not yet resetting it here!
-
-    # Only single character keynames are taken
-    my Str $ext = (
-      map -> $k, $v { next if $k.chars > 1; "$k=$v"; }, $!extensions.kv
-    ).join(',');
-
-    $!client-first-message-bare ~= ",$ext" if ?$ext;
-
-    $!client-first-message = "$!gs2-header,$!client-first-message-bare";
-  }
-
-  #-----------------------------------------------------------------------------
-  method !client-final-message ( ) {
-
-    # Using named arguments, the clients object doesn't need to
-    # support all variables as long as a Buf is returned
-    my Buf $mangled-password;
-    if $!client-side.^can('mangle-password') {
-      $mangled-password = $!client-side.mangle-password(
-        :$!username, :$!password, :$!authzid
-      );
-    }
-
-    else {
-      $mangled-password = self.mangle-password($!password);
-    }
-
-    $!salted-password = $!pbkdf2.derive( $mangled-password, $!s-salt, $!s-iter);
-
-    $!client-key = hmac( $!salted-password, 'Client Key', &$!CGH);
-    $!stored-key = $!CGH($!client-key);
-
-    # biws is from encode-base64( 'n,,', :str)
-#TODO gs2-header [ cbind-data ]
-    $!channel-binding = "c=biws";
-    $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
-
-    $!auth-message = 
-      ( $!client-first-message-bare,
-        $!server-first-message,
-        $!client-final-without-proof
-      ).join(',');
-
-    $!client-signature = hmac( $!stored-key, $!auth-message, &$!CGH);
-
-    $!client-proof .= new;
-    for ^($!client-key.elems) -> $i {
-      $!client-proof[$i] = $!client-key[$i] +^ $!client-signature[$i];
-    }
-
-    $!client-final-message =
-      [~] $!client-final-without-proof,
-          ',p=',
-          encode-base64( $!client-proof, :str);
-  }
-
-  #-----------------------------------------------------------------------------
-  method !process-server-first ( --> Str ) {
-
-    my Str $error = '';
-
-    $error = 'Undefined first server message' unless ? $!server-first-message;
-    return $error if $error;
-
-    ( my $nonce, my $salt, my $iter) = $!server-first-message.split(',');
-
-    $nonce ~~ s/^ 'r=' //;
-    $error = 'no nonce found' if !? $nonce or !?$/; # Check s/// operation too
-    return $error if $error;
-#TODO Check if it starts with client nonce
-
-    $salt ~~ s/^ 's=' //;
-    $error = 'no salt found' if !? $salt or !?$/;
-    return $error if $error;
-
-    $iter ~~ s/^ 'i=' //;
-    $error = 'no iteration count found' if !? $iter or !?$/;
-    return $error if $error;
-
-    $!s-nonce = $nonce;
-    $!s-salt = decode-base64( $salt, :bin);
-    $!s-iter = $iter.Int;
-
-    $error;
-  }
-
-  #-----------------------------------------------------------------------------
-  method !verify-server ( --> Str ) {
-
-    my Str $error = '';
-
-    if $!server-final-message ~~ m/^ 'e=' / {
-      # error
-    }
-
-    elsif $!server-final-message ~~ m/^ 'v=' / {
-      # verify server
-      my Str $sv = $!server-final-message;
-      $sv ~~ s/^ 'v=' //;
-
-      $!server-key = hmac( $!salted-password, 'Server Key', &$!CGH);
-      $!server-signature = hmac( $!server-key, $!auth-message, &$!CGH);
-
-      if encode-base64( $!server-signature, :str) ne $sv {
-        $error = 'Server verification failed';
-      }
-    }
-
-    else {
-      $error = 'Server response not recognized';
-    }
-
-    $error;
-  }
-}}
-
-#`{{
-  #-----------------------------------------------------------------------------
-  method mangle-password ( Str:D $password --> Buf ) {
-
-    Buf.new($!password.encode);
-  }
-
-  #-----------------------------------------------------------------------------
-  method !saslPrep ( Str:D $text --> Str ) {
-
-    my Str $prepped-text = $text;
-    unless $!skip-saslprep {
-      # prep string
-    }
-
-    # never skip this
-    $prepped-text = self!encode-name($prepped-text);
-  }
-
-  #-----------------------------------------------------------------------------
-  method !decode-name ( Str $name is copy --> Str ) {
-
-    $name ~~ s:g/ '=2c' /,/;
-    $name ~~ s:g/ '=3d' /=/;
-  }
-
-  #-----------------------------------------------------------------------------
-  method !encode-name ( Str $name is copy --> Str ) {
-
-    $name ~~ s:g/ '=' /=3d/;
-    $name ~~ s:g/ ',' /=2c/;
-
-    $name;
-  }
-
-  #-----------------------------------------------------------------------------
-  method !test-methods ( $obj, @methods --> Bool ) {
-
-    my Bool $all-there = True;
-    for @methods -> $method {
-      if !? $obj.^can($method) {
-        $all-there = False;
-        last;
-      }
-    }
-
-    $all-there;
-  }
-}}
 }

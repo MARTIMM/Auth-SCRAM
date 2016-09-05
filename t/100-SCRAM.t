@@ -41,13 +41,7 @@ class MyClient {
   }
 
   # method mangle-password() is optional
-
-  #-----------------------------------------------------------------------------
   # method cleanup() is optional
-  method cleanup (  ) {
-
-    diag 'been here, done that';
-  }
 
   #-----------------------------------------------------------------------------
   method error ( Str:D $error-message --> Str ) {

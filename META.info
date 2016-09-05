@@ -17,5 +17,5 @@
     "Auth::SCRAM":      "lib/Auth/SCRAM.pm6"
   },
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM",
-  "version": "v0.2.0"
+  "version": "v0.3.0"
 }

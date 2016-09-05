@@ -63,14 +63,13 @@ Use panda to install the package like so.
 $ panda install Auth-SCRAM
 ```
 
-## Versions of PERL, MOARVM and MongoDB
+## Versions of PERL, MOARVM
 
 This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c.
 
 ## BUGS, KNOWN LIMITATIONS AND TODO
 
-* Implement server side code
-* Keep information when calculated. User requst boolean and username/password/authzid must be kept the same. This saves time.
+* Keep information when calculated. User request boolean and username/password/authzid must be kept the same. This saves time.
 * Channel binding and several other checks
 * Normalization with rfc3454 rfc7564 (stringprep).  saslPrep rfc4013 rfc7613
 
@@ -80,6 +79,8 @@ See [semantic versioning](http://semver.org/). Please note point 4. on
 that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
+* 0.3.0
+  * Server side code implemented. Lack error return if there are any.
 * 0.2.0
   * Refactored code into server and client parts. User interface is unchanged.
 * 0.1.1

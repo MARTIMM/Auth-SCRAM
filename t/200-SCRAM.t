@@ -31,28 +31,19 @@ class Credentials {
   }
 
   #-----------------------------------------------------------------------------
-  method add-user ( $username, $password ) {
+  method add-user ( $username is copy, $password is copy ) {
 
-    my Buf $salt = self.salt;
-    my Int $iter = self.iterations;
+    $username = $!scram.saslPrep($username);
+    $password = $!scram.saslPrep($password);
 
-    my Buf $salted-password = $!scram.derive-key(
+    $!credentials-db{$username} = $!scram.generate-user-credentials(
       :$username, :$password,
-      :salt($salt), :iter($iter),
-      :helper-object(self),
+      :salt(Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118)),
+      :iter(4096),
+      :helper-object(self)
     );
 
-    my Buf $client-key = $!scram.client-key($salted-password);
-    my Buf $stored-key = $!scram.stored-key($client-key);
-    my Buf $server-key = $!scram.server-key($salted-password);
-
-    $!credentials-db{$username} = %(
-      iter => $iter,
-      salt => encode-base64( $salt, :str),
-      stored-key => encode-base64( $stored-key, :str),
-      server-key => encode-base64( $server-key, :str)
-    );
-say $!credentials-db.perl;
+#say '-' x 80, "\n", $!credentials-db<user> if $username eq 'user';
   }
 
   #-----------------------------------------------------------------------------
@@ -60,27 +51,6 @@ say $!credentials-db.perl;
 
 #TODO what to do with authzid
     return $!credentials-db{$username};
-  }
-
-  #-----------------------------------------------------------------------------
-  # method salt() is optional
-  method salt ( --> Buf ) {
-
-    Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118);
-  }
-
-  #-----------------------------------------------------------------------------
-  # method nonce() is optional
-  method nonce ( --> Buf ) {
-
-    Buf.new( 222, 183, 220, 52, 118, 9, 99, 86, 85, 189, 101, 108, 238);
-  }
-
-  #-----------------------------------------------------------------------------
-  # method iterations() is optional
-  method iterations ( --> Int ) {
-
-    4096;
   }
 
   # method mangle-password() is optional
@@ -104,6 +74,11 @@ say $!credentials-db.perl;
   # return server final message
   method server-final ( Str:D $server-final-message --> Str ) {
 
+    is $server-final-message,
+       'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=',
+       $server-final-message;
+
+    ''
   }
 
   #-----------------------------------------------------------------------------
