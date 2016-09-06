@@ -17,8 +17,6 @@ role SCRAM::Server {
   has Str $!authzid = '';
   has Bool $!strings-are-prepped = False;
 
-  # Client side and server side communication. Pick one or the other.
-  has $!client-side;
   has $!server-side;
 
   # Set these values before creating the messages
@@ -100,13 +98,13 @@ role SCRAM::Server {
     $!client-first-message = $client-first-message;
     my Str $error = self!process-client-first;
     if ?$error {
-      $!client-side.error($error);
+      $!server-side.error($error);
       return $error;
     }
 
     $error = self!server-first-message;
     if ?$error {
-      $!client-side.error($error);
+      $!server-side.error($error);
       return $error;
     }
 
@@ -114,7 +112,7 @@ role SCRAM::Server {
 
     $error = self!process-client-final;
     if ?$error {
-      $!client-side.error($error);
+      $!server-side.error($error);
       return $error;
     }
 
@@ -122,11 +120,11 @@ role SCRAM::Server {
       'v=' ~ encode-base64( $!server-signature, :str)
     );
     if ?$error {
-      $!client-side.error($error);
+      $!server-side.error($error);
       return $error;
     }
 
-    $!client-side.cleanup if $!client-side.^can('cleanup');
+    $!server-side.cleanup if $!server-side.^can('cleanup');
 
     '';
   }

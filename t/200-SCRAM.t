@@ -78,19 +78,15 @@ class Credentials {
        'v=rmF9pqV8S7suAoZWja4dJRkFsKQ=',
        $server-final-message;
 
-    ''
+    '';
   }
+
+  # method mangle-password() is optional
+  # method cleanup() is optional
 
   #-----------------------------------------------------------------------------
   method error ( Str:D $message --> Str ) {
 
-  }
-
-  #-----------------------------------------------------------------------------
-  # method cleanup() is optional
-  method cleanup ( ) {
-
-    diag 'been here, done that';
   }
 }
 
