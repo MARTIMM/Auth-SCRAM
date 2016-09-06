@@ -15,7 +15,7 @@ role SCRAM::Server {
   has Str $!username;
   has Str $!password;
   has Str $!authzid = '';
-  has Bool $!strings-are-prepped = False;
+#  has Bool $!strings-are-prepped = False;
 
   has $!server-side;
 
@@ -174,6 +174,11 @@ role SCRAM::Server {
           when /^ 'm=' / {
             $!reserved-mext = $_;
             $!reserved-mext ~~ s/^ 'm=' //;
+
+            my Bool $mext-accept = False;
+            $mext-accept = $!server-side.mext($!reserved-mext)
+              if $!server-side.^can('mext');
+            return 'extensions-not-supported' unless $mext-accept;
           }
 
           when /^ 'p=' / {
@@ -182,6 +187,14 @@ role SCRAM::Server {
           }
 
           default {
+            
+            my $extension = $_;
+            $extension ~~ s/^ $<ename>=. '=' $<eval>=(.+) $//;
+            
+            my Bool $mext-accept = False;
+            $mext-accept = $!server-side.mext($!reserved-mext)
+              if $!server-side.^can('mext');
+            return 'extensions-not-supported' unless $mext-accept;
 #TODO gather extensions
           }
         }

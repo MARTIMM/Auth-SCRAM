@@ -35,8 +35,7 @@ role SCRAM::Client {
   has Str $!client-first-message;
 
   has Str $!server-first-message;
-  has Int $.s-nonce-size is rw = 18;
-  has Str $.s-nonce is rw;
+  has Str $!s-nonce;
   has Buf $!s-salt;
   has Int $!s-iter;
 

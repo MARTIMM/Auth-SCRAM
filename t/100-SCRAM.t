@@ -4,8 +4,6 @@ use v6.c;
 use Test;
 
 use Auth::SCRAM;
-#use OpenSSL::Digest;
-#use Base64;
 
 #-------------------------------------------------------------------------------
 # Example from rfc

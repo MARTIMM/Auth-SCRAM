@@ -4,8 +4,6 @@ use v6.c;
 use Test;
 
 use Auth::SCRAM;
-#use OpenSSL::Digest;
-use Base64;
 
 #-------------------------------------------------------------------------------
 # Example from rfc
@@ -53,7 +51,6 @@ class Credentials {
     return $!credentials-db{$username};
   }
 
-  # method mangle-password() is optional
 
   #-----------------------------------------------------------------------------
   # return server first message to client, then receive and
@@ -81,6 +78,7 @@ class Credentials {
     '';
   }
 
+  # method mext() is optional
   # method mangle-password() is optional
   # method cleanup() is optional
 
