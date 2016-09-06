@@ -8,8 +8,8 @@ use Base64;
 
 #-------------------------------------------------------------------------------
 # Example from rfc
-# C: n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL
-# S: r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096
+# C: n,,n=user,r=...
+# S: r=......,s=QSXCR+Q6sek8bf92,i=4096
 # C: c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,
 #    p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
 # S: v=rmF9pqV8S7suAoZWja4dJRkFsKQ=
@@ -57,8 +57,8 @@ class Credentials {
   # return client final response
   method server-first ( Str:D $server-first-message --> Str ) {
 
-    is $server-first-message,
-       'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096',
+    like $server-first-message,
+       / 'r=' <-[,]>+ ',s=QSXCR+Q6sek8bf92,i=4096'/,
        $server-first-message;
 
     < c=biws
@@ -104,19 +104,15 @@ subtest {
 
   # - command is add a user
   $crd.add-user( 'user', 'pencil');
-  $crd.add-user( 'gebruiker', 'potlood');
-  $crd.add-user( 'utilisateur', 'crayon');
 
   # - command autenticate as 'user'/'pencil'
   my Str $c-nonce = encode-base64(
-    Buf.new( 127, 41, 40, 249, 221, 165, 109, 177, 96,
-             56, 212, 111, 246, 169, 49, 117, 172, 11
-    ),
+    Buf.new((for ^$crd.s-nonce-size { (rand * 256).Int })),
     :str
   );
   
   my Str $client-first-message = "n,,n=user,r=$c-nonce";
-  $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
+#  $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
   $crd.start-scram(:$client-first-message);
 
 }, 'SCRAM tests';

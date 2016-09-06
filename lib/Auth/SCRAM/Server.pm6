@@ -54,6 +54,7 @@ role SCRAM::Server {
   has Buf $!server-key;
   has Buf $!server-signature;
 
+  has Str $!error-message;
   #-----------------------------------------------------------------------------
   method init ( :$server-side! ) {
 
@@ -93,7 +94,7 @@ role SCRAM::Server {
   }
 
   #-----------------------------------------------------------------------------
-  method start-scram( Str:D $client-first-message! --> Str ) {
+  method start-scram( Str:D :$client-first-message! --> Str ) {
 
     $!client-first-message = $client-first-message;
     my Str $error = self!process-client-first;
@@ -171,6 +172,9 @@ role SCRAM::Server {
             $!c-nonce ~~ s/^ 'r=' //;
           }
 
+          # According to rfc this is for future extensibility. When used
+          # the server should always error. This works now when
+          # $!server-side.mext() and $!server-side.extension() are not defined.
           when /^ 'm=' / {
             $!reserved-mext = $_;
             $!reserved-mext ~~ s/^ 'm=' //;
@@ -187,14 +191,13 @@ role SCRAM::Server {
           }
 
           default {
-            
             my $extension = $_;
             $extension ~~ s/^ $<ename>=. '=' $<eval>=(.+) $//;
-            
-            my Bool $mext-accept = False;
-            $mext-accept = $!server-side.mext($!reserved-mext)
-              if $!server-side.^can('mext');
-            return 'extensions-not-supported' unless $mext-accept;
+
+            my Bool $ext-accept = False;
+            $ext-accept = $!server-side.extension($!reserved-mext)
+              if $!server-side.^can('extension');
+            return 'extensions-not-supported' unless $ext-accept;
 #TODO gather extensions
           }
         }
@@ -299,5 +302,12 @@ role SCRAM::Server {
     }
 
     '';
+  }
+
+  #-----------------------------------------------------------------------------
+  method process-error ( Str $error ) {
+  
+    $!error-message = "e=$error";
+    $!server-side.error($!error-message);
   }
 }
