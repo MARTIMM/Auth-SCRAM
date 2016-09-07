@@ -124,7 +124,7 @@ subtest {
   $client-first-message = "n,,n=$test-user,r=$c-nonce";
   $crd.start-scram(:$client-first-message);
 
-  $expected-error = 'e=invalid-encoding';
+  $expected-error = 'e=invalid-proof';
   $client-first-message = "n,,n=$test-user,r=654def56";
   $crd.start-scram(:$client-first-message);
 

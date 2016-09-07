@@ -121,6 +121,7 @@ role SCRAM::Server {
   #-----------------------------------------------------------------------------
   method !process-client-first ( --> Str ) {
 
+#say "PC 1st: $!client-first-message";
     # First get the gs2 header
     for $!client-first-message.split( ',', 3) {
 
@@ -150,11 +151,11 @@ role SCRAM::Server {
           when /^ 'n=' / {
             $!username = $_;
             $!username ~~ s/^ 'n=' //;
-say "U: $!username";
-            $!username ~~ m:g/ '=' $<code>=[..] /;
-             for @$/ -> $c {
-               return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;
-             }
+            $!username ~~ m:g/ '=' $<code>=[.?.?] /;
+
+            for @$/ -> $c {
+              return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;
+            }
           }
 
           when /^ 'r=' / {
@@ -239,6 +240,7 @@ say "U: $!username";
   #-----------------------------------------------------------------------------
   method !process-client-final ( --> Str ) {
 
+#say "PC 1st: $!client-final-message";
     for $!client-final-message.split(',') {
       when /^ 'c=' / {
         $!channel-binding = $_;
