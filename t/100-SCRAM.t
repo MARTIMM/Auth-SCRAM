@@ -59,7 +59,7 @@ subtest {
 
   $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
 
-  $sc.start-scram;
+  is '', $sc.start-scram, 'client side authentication of user ok';
 
 }, 'SCRAM tests';
 

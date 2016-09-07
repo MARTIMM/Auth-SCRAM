@@ -84,7 +84,7 @@ class Credentials {
   # method cleanup() is optional
 
   #-----------------------------------------------------------------------------
-  method error ( Str:D $message --> Str ) {
+  method error ( Str:D $message ) {
 
   }
 }
@@ -103,7 +103,8 @@ subtest {
   # - child processes input as commands
 
   # - command is add a user
-  $crd.add-user( 'user', 'pencil');
+  my Str $test-user = 'user';
+  $crd.add-user( $test-user, 'pencil');
   $crd.add-user( 'gebruiker', 'potlood');
   $crd.add-user( 'utilisateur', 'crayon');
 
@@ -115,9 +116,12 @@ subtest {
     :str
   );
   
-  my Str $client-first-message = "n,,n=user,r=$c-nonce";
+  my Str $client-first-message = "n,,n=$test-user,r=$c-nonce";
   $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
-  $crd.start-scram(:$client-first-message);
+
+  is '', $crd.start-scram(:$client-first-message),
+     'server side authentication of user ok';
+
 
 }, 'SCRAM tests';
 

@@ -7,13 +7,7 @@ use Auth::SCRAM;
 use Base64;
 
 #-------------------------------------------------------------------------------
-# Example from rfc
-# C: n,,n=user,r=...
-# S: r=......,s=QSXCR+Q6sek8bf92,i=4096
-# C: c=biws,r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,
-#    p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
-# S: v=rmF9pqV8S7suAoZWja4dJRkFsKQ=
-#
+my Str $expected-error = '';
 #-------------------------------------------------------------------------------
 # A user credentials database used to store added users to the system
 # Credentials must be read from somewhere and saved to the same somewhere.
@@ -21,10 +15,13 @@ class Credentials {
   has Hash $!credentials-db;
   has Auth::SCRAM $!scram handles <start-scram s-nonce-size s-nonce>;
 
+  # Salt must be generated unique for each username but it is fixed for the test
+  has Buf $!salt .= new((for ^6 { (rand * 256).Int }));
+  has Int $!iter = 1000;
+
   #-----------------------------------------------------------------------------
   submethod BUILD ( ) {
 
-#    $!scram .= new( :server-side(self), :basic-use);
     $!scram .= new(:server-side(self));
     isa-ok $!scram, Auth::SCRAM;
   }
@@ -36,20 +33,17 @@ class Credentials {
     $password = $!scram.saslPrep($password);
 
     $!credentials-db{$username} = $!scram.generate-user-credentials(
-      :$username, :$password,
-      :salt(Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118)),
-      :iter(4096),
-      :helper-object(self)
+      :$username, :$password, :$!salt, :$!iter, :helper-object(self)
     );
 
-#say '-' x 80, "\n", $!credentials-db<user> if $username eq 'user';
+#say "Creds: ", $!credentials-db{$username};
   }
 
   #-----------------------------------------------------------------------------
   method credentials ( Str $username, Str $authzid --> Hash ) {
 
 #TODO what to do with authzid
-    return $!credentials-db{$username};
+    return $!credentials-db{$username} // {};
   }
 
   #-----------------------------------------------------------------------------
@@ -57,14 +51,22 @@ class Credentials {
   # return client final response
   method server-first ( Str:D $server-first-message --> Str ) {
 
+    my Str $s = encode-base64( $!salt, :str);
     like $server-first-message,
-       / 'r=' <-[,]>+ ',s=QSXCR+Q6sek8bf92,i=4096'/,
-       $server-first-message;
+         /^ 'r=' $<cs-nonce>=(<-[,]>+) ",s=$s"/,
+         $server-first-message;
 
-    < c=biws
-      r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j
-      p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts=
-    >.join(',');
+    $server-first-message ~~ m/^ 'r=' $<cs-nonce>=(<-[,]>+) /;
+#say "Nonce: ", $/<cs-nonce>.Str;
+
+    # Send wrong proof
+    my Str $rs = (
+      'c=biws',
+      "r=" ~ $/<cs-nonce>.Str,
+      "p=v0X8v3Bz2T0CJGbJQyF0X+HI4Ts="
+    ).join(',');
+#say "return string: $rs";
+    $rs;
   }
 
   #-----------------------------------------------------------------------------
@@ -78,14 +80,16 @@ class Credentials {
     '';
   }
 
+  # method authzid() is optional
   # method mext() is optional
   # method extension() is optional
   # method mangle-password() is optional
   # method cleanup() is optional
 
   #-----------------------------------------------------------------------------
-  method error ( Str:D $message --> Str ) {
+  method error ( Str:D $message ) {
 
+    is $message, $expected-error, "expected error: '$expected-error'";
   }
 }
 
@@ -103,16 +107,29 @@ subtest {
   # - child processes input as commands
 
   # - command is add a user
-  $crd.add-user( 'user', 'pencil');
+  my Str $test-user = 'user';
+  $crd.add-user( $test-user, 'pencil');
 
   # - command autenticate as 'user'/'pencil'
   my Str $c-nonce = encode-base64(
-    Buf.new((for ^$crd.s-nonce-size { (rand * 256).Int })),
+    Buf.new((for ^10 { (rand * 256).Int })),
     :str
   );
-  
-  my Str $client-first-message = "n,,n=user,r=$c-nonce";
-#  $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
+
+  $expected-error = 'e=unknown-user';
+  my Str $client-first-message = "n,,n=otheruser,r=$c-nonce";
+  $crd.start-scram(:$client-first-message);
+
+  $expected-error = 'e=invalid-proof';
+  $client-first-message = "n,,n=$test-user,r=$c-nonce";
+  $crd.start-scram(:$client-first-message);
+
+  $expected-error = 'e=invalid-encoding';
+  $client-first-message = "n,,n=$test-user,r=654def56";
+  $crd.start-scram(:$client-first-message);
+
+  $expected-error = 'e=invalid-encoding';
+  $client-first-message = "n,,n=u1=2cdata=f,r=$c-nonce";
   $crd.start-scram(:$client-first-message);
 
 }, 'SCRAM tests';

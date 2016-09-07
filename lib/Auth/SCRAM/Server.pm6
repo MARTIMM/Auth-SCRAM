@@ -98,32 +98,20 @@ role SCRAM::Server {
 
     $!client-first-message = $client-first-message;
     my Str $error = self!process-client-first;
-    if ?$error {
-      $!server-side.error($error);
-      return $error;
-    }
+    return self!process-error($error) if ?$error;
 
     $error = self!server-first-message;
-    if ?$error {
-      $!server-side.error($error);
-      return $error;
-    }
+    return self!process-error($error) if ?$error;
 
     $!client-final-message = $!server-side.server-first($!server-first-message);
 
     $error = self!process-client-final;
-    if ?$error {
-      $!server-side.error($error);
-      return $error;
-    }
+    return self!process-error($error) if ?$error;
 
     $error = $!server-side.server-final(
       'v=' ~ encode-base64( $!server-signature, :str)
     );
-    if ?$error {
-      $!server-side.error($error);
-      return $error;
-    }
+    return self!process-error($error) if ?$error;
 
     $!server-side.cleanup if $!server-side.^can('cleanup');
 
@@ -132,8 +120,6 @@ role SCRAM::Server {
 
   #-----------------------------------------------------------------------------
   method !process-client-first ( --> Str ) {
-
-    my Str $error = '';
 
     # First get the gs2 header
     for $!client-first-message.split( ',', 3) {
@@ -164,7 +150,11 @@ role SCRAM::Server {
           when /^ 'n=' / {
             $!username = $_;
             $!username ~~ s/^ 'n=' //;
-#            $!username = self!decode-name($_);
+say "U: $!username";
+            $!username ~~ m:g/ '=' $<code>=[..] /;
+             for @$/ -> $c {
+               return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;
+             }
           }
 
           when /^ 'r=' / {
@@ -195,7 +185,7 @@ role SCRAM::Server {
             $extension ~~ s/^ $<ename>=. '=' $<eval>=(.+) $//;
 
             my Bool $ext-accept = False;
-            $ext-accept = $!server-side.extension($!reserved-mext)
+            $ext-accept = $!server-side.extension( $/<ename>.Str, $/<eval>.Str)
               if $!server-side.^can('extension');
             return 'extensions-not-supported' unless $ext-accept;
 #TODO gather extensions
@@ -205,12 +195,11 @@ role SCRAM::Server {
     }
 
     if ? $!username and ? $!authzid and $!server-side.^can('authzid') {
-      if not $!server-side.authzid( $!username, $!authzid) {
-        return "User '$!username' may not use rights of '$!authzid'";
-      }
+      return "other-error"
+        unless $!server-side.authzid( $!username, $!authzid);
     }
-
-    $error;
+    
+    '';
   }
 
   #-----------------------------------------------------------------------------
@@ -219,12 +208,10 @@ role SCRAM::Server {
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
 
-    my Str $error = '';
-
     my Hash $credentials = $!server-side.credentials(
       $!username, $!authzid
     );
-    return 'authentication failure' unless $credentials.elems;
+    return 'unknown-user' unless $credentials.elems;
 
     $!s-salt = Buf.new(decode-base64($credentials<salt>));
     $!s-iter = $credentials<iter>;
@@ -261,7 +248,7 @@ role SCRAM::Server {
       when /^ 'r=' / {
         my Str $nonce = $_;
         $nonce ~~ s/^ 'r=' //;
-        return 'not a proper nonce' if $nonce ne $!c-nonce ~ $!s-nonce;
+        return 'invalid-encoding' if $nonce ne $!c-nonce ~ $!s-nonce;
       }
 
       when /^ 'p=' / {
@@ -282,18 +269,22 @@ role SCRAM::Server {
         my Hash $credentials = $!server-side.credentials(
           $!username, $!authzid
         );
-        return 'authentication failure' unless $credentials.elems;
+        return 'unknown-user' unless $credentials.elems;
 
         $!stored-key = Buf.new(decode-base64($credentials<stored-key>));
-        $!client-signature = self.client-signature( $!stored-key, $!auth-message);
+        $!client-signature = self.client-signature(
+          $!stored-key, $!auth-message
+        );
         $!client-key = self.XOR( $!client-proof, $!client-signature);
 
         my Str $st-key = encode-base64( self.stored-key($!client-key), :str);
 #say "Stored-keys: $st-key, $credentials<stored-key>";
-        return 'authentication error' if $st-key ne $credentials<stored-key>;
+        return 'invalid-proof' if $st-key ne $credentials<stored-key>;
 
         $!server-key = Buf.new(decode-base64($credentials<server-key>));
-        $!server-signature = self.server-signature( $!server-key, $!auth-message);
+        $!server-signature = self.server-signature(
+          $!server-key, $!auth-message
+        );
       }
 
       default {
@@ -305,9 +296,11 @@ role SCRAM::Server {
   }
 
   #-----------------------------------------------------------------------------
-  method process-error ( Str $error ) {
+  method !process-error ( Str $error ) {
   
     $!error-message = "e=$error";
     $!server-side.error($!error-message);
+    
+    $!error-message;
   }
 }
