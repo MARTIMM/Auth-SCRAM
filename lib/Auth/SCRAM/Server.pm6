@@ -56,15 +56,17 @@ role SCRAM::Server {
 
   has Str $!error-message;
   #-----------------------------------------------------------------------------
-  method init ( :$server-side! ) {
+  method init ( :$server-side! --> Str ) {
 
     $!server-side = $server-side;
 
-    die 'message object misses some methods'
+    return 'message object misses some methods'
       unless self.test-methods(
         $server-side,
         < credentials server-first server-final error >
       );
+
+    '';
   }
 
   #-----------------------------------------------------------------------------

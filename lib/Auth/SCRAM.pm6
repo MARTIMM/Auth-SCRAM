@@ -12,7 +12,13 @@ unit package Auth;
 #     and username/password/authzid must be kept the same. This saves time.
 
 #-------------------------------------------------------------------------------
+#class SCRAM::Client { ... }
+#class SCRAM::Server { ... }
+
 class SCRAM {
+
+#  trusts Auth::SCRAM::Client;
+#  trusts Auth::SCRAM::Server;
 
   has Bool $!role-imported = False;
   has PKCS5::PBKDF2 $!pbkdf2;

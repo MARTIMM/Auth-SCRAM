@@ -107,6 +107,10 @@ subtest {
   $crd.add-user( $test-user, 'pencil');
   $crd.add-user( 'gebruiker', 'potlood');
   $crd.add-user( 'utilisateur', 'crayon');
+  $crd.add-user( '\x9ed2\x6fa4 \x660e', 'Akira Kurosawa');
+
+say "Credentials of \x9ed2\x6fa4 \x660e are ",
+    $crd.credentials('\x9ed2\x6fa4 \x660e', '');
 
   # - command autenticate as 'user'/'pencil'
   my Str $c-nonce = encode-base64(

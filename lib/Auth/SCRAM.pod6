@@ -72,12 +72,18 @@ shell( "perl6 --doc=HTML '$pod' | wkhtmltopdf - '$pdf'");
 While a client authentication is shown above Auth::SCRAM itself does not do any
 of this. The user of the Auth::SCRAM class provides a client-side or a
 server-side object with which the initialization phase will upgrade the object
-to a Auth::SCRAM object with a Auth::SCRAM::Client or Auth::SCRAM::Server role.
+to a Auth::SCRAM object with a L<Auth::SCRAM::Client> or L<Auth::SCRAM::Server>
+role.
 
 Specific details are shown in the pods for these role modules.
 
 
 =head1 Methods
+
+Auth::SCRAM has some method which are mostly used by the client or server roles
+and have not much use by the caller directly and ae therefore not explained. The
+most important method is C<start-scram>.
+
 =head2 new
 
 Defined as
@@ -93,9 +99,10 @@ Defined as
   )
 
 Initialize the process. The Cryptographic Hash function C<$CGH> is by default
-set to SHA1. The authorization id($authzid) is needed when you want things done with the privileges of someone else. The client-side and server-side are objects
+set to SHA1. The authorization id($authzid) is needed when you want things done
+with the privileges of someone else. The client-side and server-side are objects
 with methods called by the SCRAM methods. Only one of the client or server
-object can be defined.
+objects can be defined.
 
 
 =head2 start-scram
