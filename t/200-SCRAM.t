@@ -119,7 +119,7 @@ say "Credentials of \x9ed2\x6fa4 \x660e are ",
     ),
     :str
   );
-  
+
   my Str $client-first-message = "n,,n=$test-user,r=$c-nonce";
   $crd.s-nonce = '3rfcNHYJY1ZVvWVs7j';
 
