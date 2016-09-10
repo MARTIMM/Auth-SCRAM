@@ -23,6 +23,7 @@ class SCRAM {
   has Bool $!role-imported = False;
   has PKCS5::PBKDF2 $!pbkdf2;
   has Callable $!CGH;
+  has Bool $!skip-sasl-prep = False;
 
   #-----------------------------------------------------------------------------
   submethod BUILD (
@@ -71,6 +72,12 @@ class SCRAM {
     else {
       die 'At least a client or server object must be chosen';
     }
+  }
+
+  #-----------------------------------------------------------------------------
+  method skip-sasl-prep ( Bool:D :$skip ) {
+
+    $!skip-sasl-prep = $skip;
   }
 
   #-----------------------------------------------------------------------------
@@ -139,11 +146,14 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
-  method saslPrep ( Str:D $text --> Str ) {
+  method sasl-prep ( Str:D $text --> Str ) {
 
     my Str $prepped-text = $text;
 
+    unless $!skip-sasl-prep {
 #TODO prep string
+
+    }
 
     # Some character protection changes
     $prepped-text = self!encode-name($prepped-text);
