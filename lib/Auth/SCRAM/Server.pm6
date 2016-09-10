@@ -71,12 +71,15 @@ role SCRAM::Server {
 
   #-----------------------------------------------------------------------------
   method generate-user-credentials (
-    Str :$username, Str :$password,
+    Str :$username is copy, Str :$password is copy,
     Buf :$salt, Int :$iter,
     Any :$helper-object
 
-    --> Hash
+    --> List
   ) {
+
+    $username = self.sasl-prep($username);
+    $password = self.sasl-prep($password);
 
     my Buf $salted-password = self.derive-key(
       :$username, :$password,
@@ -88,10 +91,13 @@ role SCRAM::Server {
     my Buf $stored-key = self.stored-key($client-key);
     my Buf $server-key = self.server-key($salted-password);
 
-    %( iter => $iter,
+    # Return the prepped username and the credential data
+    ( $username,
+      %( iter => $iter,
        salt => encode-base64( $salt, :str),
        stored-key => encode-base64( $stored-key, :str),
        server-key => encode-base64( $server-key, :str)
+      )
     );
   }
 
@@ -201,7 +207,7 @@ role SCRAM::Server {
       return "other-error"
         unless $!server-side.authzid( $!username, $!authzid);
     }
-    
+
     '';
   }
 
@@ -301,10 +307,10 @@ role SCRAM::Server {
 
   #-----------------------------------------------------------------------------
   method !process-error ( Str $error ) {
-  
+
     $!error-message = "e=$error";
     $!server-side.error($!error-message);
-    
+
     $!error-message;
   }
 }
