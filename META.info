@@ -11,7 +11,7 @@
   ],
   "description": "Salted Challenge Response Authentication Mechanism (SCRAM)",
   "license": "The Artistic License 2.0",
-  "name": "Auth-SCRAM",
+  "name": "Auth::SCRAM",
   "perl": "6.c",
   "provides": {
     "Auth::SCRAM":            "lib/Auth/SCRAM.pm6",
@@ -19,5 +19,5 @@
     "Auth::SCRAM::Server":    "lib/Auth/SCRAM/Server.pm6"
   },
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM",
-  "version": "v0.3.1.1"
+  "version": "v0.3.1.2"
 }
