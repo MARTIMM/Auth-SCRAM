@@ -3,27 +3,25 @@ use v6c;
 use Digest::HMAC;
 use OpenSSL::Digest;
 use PKCS5::PBKDF2;
+use Unicode::PRECIS;
+use Unicode::PRECIS::Identifier::UsernameCaseMapped;
+use Unicode::PRECIS::Identifier::UsernameCasePreserved;
+use Unicode::PRECIS::FreeForm::OpaqueString;
 
 #-------------------------------------------------------------------------------
 unit package Auth;
 
-#TODO Implement server side
 #TODO Keep information when calculated. User requst boolean
 #     and username/password/authzid must be kept the same. This saves time.
 
 #-------------------------------------------------------------------------------
-#class SCRAM::Client { ... }
-#class SCRAM::Server { ... }
 
 class SCRAM {
-
-#  trusts Auth::SCRAM::Client;
-#  trusts Auth::SCRAM::Server;
 
   has Bool $!role-imported = False;
   has PKCS5::PBKDF2 $!pbkdf2;
   has Callable $!CGH;
-  has Bool $!skip-sasl-prep = False;
+  has Bool $!case-preserved-profile;
 
   #-----------------------------------------------------------------------------
   submethod BUILD (
@@ -31,6 +29,7 @@ class SCRAM {
     Str :$username,
     Str :$password,
     Str :$authzid,
+    Bool :$case-preserved-profile = True,
 
     Callable :$CGH = &sha1,
     :$client-side,
@@ -39,6 +38,7 @@ class SCRAM {
 
     $!CGH = $CGH;
     $!pbkdf2 .= new(:$CGH);
+    $!case-preserved-profile = $case-preserved-profile;
 
     # Check client or server object capabilities
     if $client-side.defined {
@@ -75,30 +75,33 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
-  method skip-sasl-prep ( Bool:D :$skip ) {
-
-    $!skip-sasl-prep = $skip;
-  }
+  method skip-sasl-prep ( Bool:D :$skip )
+         is DEPRECATED('normalization techniques')
+         { }
 
   #-----------------------------------------------------------------------------
   method derive-key (
-    Str :$username, Str:D :$password, Str :$authzid,
+    Str :$username, Str:D :$password, Str :$authzid, Bool :$enforce = False,
     Buf:D :$salt, Int:D :$iter,
     Any:D :$helper-object
     --> Buf
   ) {
+
+#TODO normalize authzid
+    my Str $uname = self.normalize( $username, :prep-username, :$enforce);
+    my Str $pword = self.normalize( $password, :!prep-username, :$enforce);
 
     # Using named arguments, the clients object doesn't need to
     # support all variables as long as a Buf is returned
     my Buf $mangled-password;
     if $helper-object.^can('mangle-password') {
       $mangled-password = $helper-object.mangle-password(
-        :$username, :$password, :$authzid
+        :$uname, :$pword, :$authzid, :scram-obj(self)
       );
     }
 
     else {
-      $mangled-password = Buf.new($password.encode);
+      $mangled-password = Buf.new($pword.encode);
     }
 
     $!pbkdf2.derive( $mangled-password, $salt, $iter);
@@ -146,13 +149,39 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
-  method sasl-prep ( Str:D $text --> Str ) {
+  method sasl-prep ( Str:D $text --> Str ) is DEPRECATED('normalize') {'';}
+  #-----------------------------------------------------------------------------
+  method normalize (
+    Str:D $text, Bool:D :$prep-username!, :$enforce = False
+    --> Str
+  ) {
 
-    my Str $prepped-text = $text;
+    my TestValue $prepped-text;
+    my $operation = $enforce ?? 'enforce' !! 'prepare';
 
-    unless $!skip-sasl-prep {
-#TODO prep string
+    # Normalize username
+    if $prep-username {
 
+      # Case preserved profile
+      if $!case-preserved-profile {
+         my Unicode::PRECIS::Identifier::UsernameCasePreserved $upi-ucp .= new;
+         $prepped-text = $upi-ucp."$operation"($text);
+         die "Username $text not accepted" if $prepped-text ~~ Bool;
+      }
+
+      # Case mapped profile
+      else {
+         my Unicode::PRECIS::Identifier::UsernameCaseMapped $upi-ucp .= new;
+         $prepped-text = $upi-ucp."$operation"($text);
+         die "Username $text not accepted" if $prepped-text ~~ Bool;
+      }
+    }
+    
+    # Normalize password
+    else {
+      my Unicode::PRECIS::FreeForm::OpaqueString $upf-os .= new;
+      $prepped-text = $upf-os."$operation"($text);
+      die "Password not accepted" if $prepped-text ~~ Bool;
     }
 
     # Some character protection changes

@@ -15,7 +15,6 @@ role SCRAM::Client {
   has Str $!username;
   has Str $!password;
   has Str $!authzid = '';
-  has Bool $!strings-are-prepped = False;
 
   # Client side and server side communication. Pick one or the other.
   has $!client-side;
@@ -106,27 +105,14 @@ role SCRAM::Client {
   #-----------------------------------------------------------------------------
   method !client-first-message ( ) {
 
-    # check state of strings
-    unless $!strings-are-prepped {
-
-      $!username = self.sasl-prep($!username);
-      $!password = self.sasl-prep($!password);
-      $!authzid = self.sasl-prep($!authzid) if ?$!authzid;
-      $!strings-are-prepped = True;
-    }
-
     self!set-gs2header;
-#say "gs2 header: ", $!gs2-header;
-
     self!set-client-first;
-#say "client first message bare: ", $!client-first-message-bare;
-#say "client first message: ", $!client-first-message-bare;
-
   }
 
   #-----------------------------------------------------------------------------
   method !set-gs2header ( ) {
 
+#TODO normalize authzid?
     my $aid = ($!authzid.defined and $!authzid.chars) ?? "a=$!authzid" !! '';
 
     $!gs2-bind-flag = 'n';
@@ -141,7 +127,8 @@ role SCRAM::Client {
         ?? "m=$!reserved-mext,"
         !! '';
 
-    $!client-first-message-bare ~= "n=$!username,";
+    my Str $uname = self.normalize( $!username, :prep-username, :!enforce);
+    $!client-first-message-bare ~= "n=$uname,";
 
     $!c-nonce = encode-base64(
       Buf.new((for ^$!c-nonce-size { (rand * 256).Int })),
@@ -150,10 +137,10 @@ role SCRAM::Client {
 
     $!client-first-message-bare ~= "r=$!c-nonce";
 
-# Not needed anymore, necessary to reset to prevent reuse by hackers
-# So when user needs its own nonce again, set it before starting scram.
-$!c-nonce = Str;
-#TODO used later to check returned server nonce, so not yet resetting it here!
+    # Not needed anymore, necessary to reset to prevent reuse by hackers
+    # So when user needs its own nonce again, set it before starting scram.
+    $!c-nonce = Str;
+#TODO used later to check returned server nonce, so not yet resetting it here?!
 
     # Only single character keynames are taken
     my Str $ext = (
@@ -169,7 +156,7 @@ $!c-nonce = Str;
   method !client-final-message ( ) {
 
     $!salted-password = self.derive-key(
-      :$!username, :$!password, :$!authzid,
+      :$!username, :$!password, :$!authzid, :!enforce
       :salt($!s-salt), :iter($!s-iter),
       :helper-object($!client-side)
     );
