@@ -19,5 +19,5 @@
     "Auth::SCRAM::Server":    "lib/Auth/SCRAM/Server.pm6"
   },
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM.git",
-  "version": "v0.3.1.3"
+  "version": "v0.4.0"
 }
