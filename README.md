@@ -21,7 +21,7 @@ class MyClient {
 
     # Send $client-first-message to server;
 
-    # Server response is server first message
+    # Get server response, this is the server first message
     'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
   }
 
@@ -80,8 +80,8 @@ change at any time. The public API should not be considered stable.*
 
 * 0.4.0
   * Normalization with rfc3454 rfc7564 (stringprep).  saslPrep rfc4013 rfc7613. These rfc's are obsoleted by rfc's forming the PRECIS framework. The perl6 module used is Unicode::PRECIS.
-  * Skip-sasl-prep() function is depricated because it is not ok to skip normalization of strings.
-  * The interfaces of some methods had to be changed in order to be able to select the proper normalization profiles.
+  * Skip-sasl-prep() function is deprecated because it is not ok to skip normalization of strings.
+  * The interfaces of some methods had to be changed in order to be able to select the proper normalization profiles. These, however, are initialized with proper defaults.
 * 0.3.2
   * Refactoring code to have hidden methods. In current setup it was not possible. This failed because of role usage, so keep it the same.
   * documentation.
