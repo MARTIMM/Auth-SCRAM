@@ -1,4 +1,4 @@
-use v6c;
+use v6.c;
 
 use Digest::HMAC;
 use OpenSSL::Digest;
