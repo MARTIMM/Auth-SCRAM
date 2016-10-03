@@ -1,4 +1,4 @@
-use v6c;
+use v6.c;
 
 use Base64;
 
@@ -71,20 +71,17 @@ role SCRAM::Server {
 
   #-----------------------------------------------------------------------------
   method generate-user-credentials (
-    Str :$username is copy, Str :$password is copy,
+    Str :$username, Str :$password,
     Buf :$salt, Int :$iter,
     Any :$helper-object
 
     --> List
   ) {
 
-    $username = self.sasl-prep($username);
-    $password = self.sasl-prep($password);
-
     my Buf $salted-password = self.derive-key(
-      :$username, :$password,
+      :$username, :$password, :enforce,
       :$salt, :$iter,
-      :$helper-object,
+      :$helper-object
     );
 
     my Buf $client-key = self.client-key($salted-password);
@@ -160,6 +157,9 @@ role SCRAM::Server {
             $!username = $_;
             $!username ~~ s/^ 'n=' //;
             $!username ~~ m:g/ '=' $<code>=[.?.?] /;
+
+            $!username = self.decode-name($!username);
+# TODO Normalize?
 
             for @$/ -> $c {
               return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;

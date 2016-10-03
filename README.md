@@ -17,16 +17,16 @@ This package implements secure authentication mechanism.
 class MyClient {
 
   # Send client first message to server and return server response
-  method message1 ( Str:D $client-first-message --> Str ) {
+  method client-first ( Str:D $client-first-message --> Str ) {
 
     # Send $client-first-message to server;
 
-    # Server response is server first message
+    # Get server response, this is the server first message
     'r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096';
   }
 
   # Send client final message to server and return server response
-  method message2 ( Str:D $client-final-message --> Str ) {
+  method client-final ( Str:D $client-final-message --> Str ) {
 
     # Send $client-final-message to server.
 
@@ -39,17 +39,17 @@ class MyClient {
   }
 }
 
-  my Auth::SCRAM $sc .= new(
-    :username<user>,
-    :password<pencil>,
-    :client-side(MyClient.new),
-  );
-  isa-ok $sc, Auth::SCRAM;
+my Auth::SCRAM $sc .= new(
+  :username<user>,
+  :password<pencil>,
+  :client-side(MyClient.new),
+);
+isa-ok $sc, Auth::SCRAM;
 
-  $sc.c-nonce-size = 24;
-  $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
+$sc.c-nonce-size = 24;
+$sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
 
-  my $error = $sc.start-scram;
+my $error = $sc.start-scram;
 ```
 
 ## DOCUMENTATION
@@ -71,7 +71,6 @@ This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c
 
 * Keep information when calculated. User request boolean and username/password/authzid must be kept the same. This saves time.
 * Channel binding and several other checks
-* Normalization with rfc3454 rfc7564 (stringprep).  saslPrep rfc4013 rfc7613
 
 ## CHANGELOG
 
@@ -79,6 +78,13 @@ See [semantic versioning](http://semver.org/). Please note point 4. on
 that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
+* 0.4.1
+  changed the location of decoding and encoding the username string to translate
+  ',' and '=' from and to '=2D' and '=3D'.
+* 0.4.0
+  * Normalization with rfc3454 rfc7564 (stringprep). saslPrep rfc4013 rfc7613. These rfc's are obsoleted by rfc's forming the PRECIS framework. The perl6 module used is Unicode::PRECIS.
+  * Skip-sasl-prep() function is deprecated because it is not ok to skip normalization of strings.
+  * The interfaces of some methods had to be changed in order to be able to select the proper normalization profiles. These, however, are initialized with proper defaults.
 * 0.3.2
   * Refactoring code to have hidden methods. In current setup it was not possible. This failed because of role usage, so keep it the same.
   * documentation.

@@ -105,10 +105,13 @@ subtest {
   $crd.add-user( $test-user, 'pencil');
   $crd.add-user( 'gebruiker', 'potlood');
   $crd.add-user( 'utilisateur', 'crayon');
-  $crd.add-user( '\x9ed2\x6fa4 \x660e', 'Akira Kurosawa');
+  $crd.add-user( "\x9ed2\x6fa4-\x660e", 'Akira Kurosawa');
 
-say "Credentials of \x9ed2\x6fa4 \x660e are ",
-    $crd.credentials('\x9ed2\x6fa4 \x660e', '');
+  my Hash $creds = $crd.credentials( "\x9ed2\x6fa4-\x660e", '');
+  is $creds<iter>, 4096, "Number of iterations";
+  is $creds<salt>, 'QSXCR+Q6sek8bf92', "Salt in creds from \x9ed2\x6fa4-\x660e";
+#say "Credentials of \x9ed2\x6fa4-\x660e are ",
+#    $crd.credentials("\x9ed2\x6fa4-\x660e", '');
 
   # - command autenticate as 'user'/'pencil'
   my Str $c-nonce = encode-base64(
