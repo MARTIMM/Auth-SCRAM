@@ -81,27 +81,28 @@ class SCRAM {
 
   #-----------------------------------------------------------------------------
   method derive-key (
-    Str :$username, Str:D :$password, Str :$authzid, Bool :$enforce = False,
+    Str:D :$username is copy, Str:D :$password is copy,
+    Str :$authzid, Bool :$enforce = False,
     Buf:D :$salt, Int:D :$iter,
     Any:D :$helper-object
     --> Buf
   ) {
 
-#TODO normalize authzid
-    my Str $uname = self.normalize( $username, :prep-username, :$enforce);
-    my Str $pword = self.normalize( $password, :!prep-username, :$enforce);
+#TODO normalize authzid?
+    $username = self.normalize( $username, :prep-username, :$enforce);
+    $password = self.normalize( $password, :!prep-username, :$enforce);
 
     # Using named arguments, the clients object doesn't need to
     # support all variables as long as a Buf is returned
     my Buf $mangled-password;
     if $helper-object.^can('mangle-password') {
       $mangled-password = $helper-object.mangle-password(
-        :$uname, :$pword, :$authzid, :scram-obj(self)
+        :$username, :$password, :$authzid, :scram-obj(self)
       );
     }
 
     else {
-      $mangled-password = Buf.new($pword.encode);
+      $mangled-password = Buf.new($password.encode);
     }
 
     $!pbkdf2.derive( $mangled-password, $salt, $iter);
@@ -162,6 +163,9 @@ class SCRAM {
     # Normalize username
     if $prep-username {
 
+#      # Some character protection changes
+#      $prepped-text = self.encode-name($prepped-text);
+
       # Case preserved profile
       if $!case-preserved-profile {
          my Unicode::PRECIS::Identifier::UsernameCasePreserved $upi-ucp .= new;
@@ -176,7 +180,7 @@ class SCRAM {
          die "Username $text not accepted" if $prepped-text ~~ Bool;
       }
     }
-    
+
     # Normalize password
     else {
       my Unicode::PRECIS::FreeForm::OpaqueString $upf-os .= new;
@@ -184,15 +188,23 @@ class SCRAM {
       die "Password not accepted" if $prepped-text ~~ Bool;
     }
 
-    # Some character protection changes
-    $prepped-text = self!encode-name($prepped-text);
+    $prepped-text;
   }
 
   #-----------------------------------------------------------------------------
-  method !encode-name ( Str $name is copy --> Str ) {
+  method encode-name ( Str $name is copy --> Str ) {
 
     $name ~~ s:g/ '=' /=3d/;
     $name ~~ s:g/ ',' /=2c/;
+
+    $name;
+  }
+
+  #-----------------------------------------------------------------------------
+  method decode-name ( Str $name is copy --> Str ) {
+
+    $name ~~ s:g:i/ '=2c' /,/;
+    $name ~~ s:g:i/ '=3d' /=/;
 
     $name;
   }
