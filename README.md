@@ -78,8 +78,11 @@ See [semantic versioning](http://semver.org/). Please note point 4. on
 that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
+* 0.4.1
+  changed the location of decoding and encoding the username string to translate
+  ',' and '=' from and to '=2D' and '=3D'.
 * 0.4.0
-  * Normalization with rfc3454 rfc7564 (stringprep).  saslPrep rfc4013 rfc7613. These rfc's are obsoleted by rfc's forming the PRECIS framework. The perl6 module used is Unicode::PRECIS.
+  * Normalization with rfc3454 rfc7564 (stringprep). saslPrep rfc4013 rfc7613. These rfc's are obsoleted by rfc's forming the PRECIS framework. The perl6 module used is Unicode::PRECIS.
   * Skip-sasl-prep() function is deprecated because it is not ok to skip normalization of strings.
   * The interfaces of some methods had to be changed in order to be able to select the proper normalization profiles. These, however, are initialized with proper defaults.
 * 0.3.2
