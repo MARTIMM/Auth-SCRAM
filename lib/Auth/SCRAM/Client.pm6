@@ -127,7 +127,8 @@ role SCRAM::Client {
         ?? "m=$!reserved-mext,"
         !! '';
 
-    my Str $uname = self.normalize( $!username, :prep-username, :!enforce);
+    my Str $uname = self.encode-name($!username);
+    $uname = self.normalize( $uname, :prep-username, :!enforce);
     $!client-first-message-bare ~= "n=$uname,";
 
     $!c-nonce = encode-base64(
