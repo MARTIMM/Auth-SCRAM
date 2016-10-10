@@ -32,8 +32,8 @@ class SCRAM {
     Bool :$case-preserved-profile = True,
 
     Callable :$CGH = &sha1,
-    :$client-side,
-    :$server-side,
+    :$helper-object,
+    Bool :$client-helper = True,
   ) {
 
     $!CGH = $CGH;
@@ -41,13 +41,9 @@ class SCRAM {
     $!case-preserved-profile = $case-preserved-profile;
 
     # Check client or server object capabilities
-    if $client-side.defined {
+    if $client-helper {
       die 'No username and/or password provided'
         unless ? $username and ? $password;
-
-      die 'Only a client or server object must be chosen'
-        if $server-side.defined;
-
 
       if not $!role-imported {
         need Auth::SCRAM::Client;
@@ -55,10 +51,10 @@ class SCRAM {
         $!role-imported = True;
       }
       self does Auth::SCRAM::Client;
-      self.init( :$username, :$password, :$authzid, :$client-side);
+      self.init( :$username, :$password, :$authzid, :client-object($helper-object));
     }
 
-    elsif $server-side.defined {
+    else {
 
       if not $!role-imported {
         need Auth::SCRAM::Server;
@@ -66,18 +62,9 @@ class SCRAM {
         $!role-imported = True;
       }
       self does Auth::SCRAM::Server;
-      self.init(:$server-side);
-    }
-
-    else {
-      die 'At least a client or server object must be chosen';
+      self.init(:server-object($helper-object));
     }
   }
-
-  #-----------------------------------------------------------------------------
-  method skip-sasl-prep ( Bool:D :$skip )
-         is DEPRECATED('normalization techniques')
-         { }
 
   #-----------------------------------------------------------------------------
   method derive-key (
@@ -149,8 +136,6 @@ class SCRAM {
     $x3;
   }
 
-  #-----------------------------------------------------------------------------
-  method sasl-prep ( Str:D $text --> Str ) is DEPRECATED('normalize') {'';}
   #-----------------------------------------------------------------------------
   method normalize (
     Str:D $text, Bool:D :$prep-username!, :$enforce = False

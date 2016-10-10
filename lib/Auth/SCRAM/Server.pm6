@@ -17,7 +17,7 @@ role SCRAM::Server {
   has Str $!authzid = '';
 #  has Bool $!strings-are-prepped = False;
 
-  has $!server-side;
+  has $!server-object;
 
   # Set these values before creating the messages
   # Nonce size in bytes
@@ -56,13 +56,13 @@ role SCRAM::Server {
 
   has Str $!error-message;
   #-----------------------------------------------------------------------------
-  method init ( :$server-side! --> Str ) {
+  method init ( :$server-object! --> Str ) {
 
-    $!server-side = $server-side;
+    $!server-object = $server-object;
 
     return 'message object misses some methods'
       unless self.test-methods(
-        $server-side,
+        $server-object,
         < credentials server-first server-final error >
       );
 
@@ -108,17 +108,17 @@ role SCRAM::Server {
     $error = self!server-first-message;
     return self!process-error($error) if ?$error;
 
-    $!client-final-message = $!server-side.server-first($!server-first-message);
+    $!client-final-message = $!server-object.server-first($!server-first-message);
 
     $error = self!process-client-final;
     return self!process-error($error) if ?$error;
 
-    $error = $!server-side.server-final(
+    $error = $!server-object.server-final(
       'v=' ~ encode-base64( $!server-signature, :str)
     );
     return self!process-error($error) if ?$error;
 
-    $!server-side.cleanup if $!server-side.^can('cleanup');
+    $!server-object.cleanup if $!server-object.^can('cleanup');
 
     '';
   }
@@ -173,14 +173,14 @@ role SCRAM::Server {
 
           # According to rfc this is for future extensibility. When used
           # the server should always error. This works now when
-          # $!server-side.mext() and $!server-side.extension() are not defined.
+          # $!server-object.mext() and $!server-object.extension() are not defined.
           when /^ 'm=' / {
             $!reserved-mext = $_;
             $!reserved-mext ~~ s/^ 'm=' //;
 
             my Bool $mext-accept = False;
-            $mext-accept = $!server-side.mext($!reserved-mext)
-              if $!server-side.^can('mext');
+            $mext-accept = $!server-object.mext($!reserved-mext)
+              if $!server-object.^can('mext');
             return 'extensions-not-supported' unless $mext-accept;
           }
 
@@ -194,8 +194,8 @@ role SCRAM::Server {
             $extension ~~ s/^ $<ename>=. '=' $<eval>=(.+) $//;
 
             my Bool $ext-accept = False;
-            $ext-accept = $!server-side.extension( $/<ename>.Str, $/<eval>.Str)
-              if $!server-side.^can('extension');
+            $ext-accept = $!server-object.extension( $/<ename>.Str, $/<eval>.Str)
+              if $!server-object.^can('extension');
             return 'extensions-not-supported' unless $ext-accept;
 #TODO gather extensions
           }
@@ -203,9 +203,9 @@ role SCRAM::Server {
       }
     }
 
-    if ? $!username and ? $!authzid and $!server-side.^can('authzid') {
+    if ? $!username and ? $!authzid and $!server-object.^can('authzid') {
       return "other-error"
-        unless $!server-side.authzid( $!username, $!authzid);
+        unless $!server-object.authzid( $!username, $!authzid);
     }
 
     '';
@@ -217,7 +217,7 @@ role SCRAM::Server {
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
 
-    my Hash $credentials = $!server-side.credentials(
+    my Hash $credentials = $!server-object.credentials(
       $!username, $!authzid
     );
     return 'unknown-user' unless $credentials.elems;
@@ -276,7 +276,7 @@ role SCRAM::Server {
 
 #say "AML $!auth-message";
 
-        my Hash $credentials = $!server-side.credentials(
+        my Hash $credentials = $!server-object.credentials(
           $!username, $!authzid
         );
         return 'unknown-user' unless $credentials.elems;
@@ -309,7 +309,7 @@ role SCRAM::Server {
   method !process-error ( Str $error ) {
 
     $!error-message = "e=$error";
-    $!server-side.error($!error-message);
+    $!server-object.error($!error-message);
 
     $!error-message;
   }
