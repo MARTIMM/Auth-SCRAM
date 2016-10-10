@@ -6,6 +6,7 @@ change at any time. The public API should not be considered stable.*
 
 * 0.4.2
   * Documentation SCRAM, Client and Server modules.
+  * Change of pod.css
 * 0.4.1
   changed the location of decoding and encoding the username string to translate
   ',' and '=' from and to '=2D' and '=3D'.

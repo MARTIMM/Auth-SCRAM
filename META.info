@@ -23,9 +23,9 @@
     "lib/Auth/SCRAM/Client.pod6",
     "lib/Auth/SCRAM/Server.pod6",
 
-    "lib/Auth/SCRAM.pdf",
-    "lib/Auth/SCRAM/Client.pdf",
-    "lib/Auth/SCRAM/Server.pdf"
+    "doc/SCRAM.pdf",
+    "doc/SCRAM/Client.pdf",
+    "doc/SCRAM/Server.pdf"
   ],
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM.git",
   "version": "v0.4.2"

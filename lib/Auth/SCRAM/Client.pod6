@@ -3,11 +3,49 @@
 use v6.c;
 
 # Running the pod file will create a pdf using wkhtmltopdf
-#
 my Str $pod = "$*PROGRAM";
-my Str $pdf = $pod;
+my Str $pdf = './doc/' ~ $pod.IO.basename;
 $pdf ~~ s/\. <-[.]>+ $/.pdf/;
-shell( "perl6 --doc=HTML '$pod' | wkhtmltopdf - '$pdf'");
+
+my Proc $p = shell "perl6 --doc=HTML '$pod'", :out;
+
+my Str $pod-css = 'doc/pod.css'.IO.abspath;
+my Str $html = '';
+
+# search for style line in the head and add a new one
+for $p.out.lines -> $line is copy {
+  if $line ~~ m/^ \s* '<link' \s* 'rel="stylesheet"' \s*
+                 'href="//design.perl6.org/perl.css"' \s*
+                 '>' $/ {
+    $html ~= qq|  <link rel="stylesheet" href="file://$pod-css">\n|;
+    $html ~= $line ~ "\n";
+  }
+
+  # wkhtml bug? replace id on body to h1 of title
+  elsif $line ~~ m/^ \s* '<body' \s* 'class="pod"' / {
+    $line ~~ s/'id="___top"'//;
+    $html ~= $line ~ "\n";
+  }
+
+  elsif $line ~~ m/^ \s* '<h1' \s* 'class=\'title\''/ {
+    $line ~~ s/'<h1' \s* /<h1 id="___top" /;
+    $html ~= $line ~ "\n";
+    last;
+  }
+
+  else {
+    $html ~= $line ~ "\n";
+  }
+}
+
+# copy rest of it
+for $p.out.lines -> $line { $html ~= $line ~ "\n"; }
+
+# send result to pdf generator
+$p = shell "wkhtmltopdf - '$pdf' &>.pdf.log", :in;
+$p.in.print($html);
+
+#say $html;
 
 #-------------------------------------------------------------------------------
 
