@@ -51,24 +51,7 @@ $p.in.print($html);
 
 =begin pod
 
-=begin Xhtml
-<style>
-  pre {
-    border-width:       2px;
-    border-style:       solid;
-    border-color:       #060;
-    padding:            10px 0 3px 10px;
-    color:              #060;
-    background-color:   #eaefea;
-    font-family:        FreeMono;
-  }
-  td {
-    vertical-align:     top;
-  }
-</style>
-=end Xhtml
-
-=TITLE class Auth::SCRAM
+=TITLE role Auth::SCRAM::Client
 
 =SUBTITLE Authentication using SCRAM
 

@@ -29,5 +29,5 @@
     "doc/SCRAM/Server.pdf"
   ],
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM.git",
-  "version": "v0.4.2"
+  "version": "v0.4.3"
 }

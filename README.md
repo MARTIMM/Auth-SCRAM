@@ -1,6 +1,6 @@
 # Salted Challenge Response Authentication Mechanism (SCRAM)
 
-[![Build Status](https://travis-ci.org/MARTIMM/PKCS5.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
+[![Build Status](https://travis-ci.org/MARTIMM/Auth-SCRAM.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
 
 This package implements secure authentication mechanism.
 
