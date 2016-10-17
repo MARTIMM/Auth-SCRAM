@@ -25,7 +25,7 @@ class Credentials {
   submethod BUILD ( ) {
 
 #    $!scram .= new( :server-side(self), :basic-use);
-    $!scram .= new( :helper-object(self), :!client-helper);
+    $!scram .= new( :helper-object(self));
     isa-ok $!scram, Auth::SCRAM;
   }
 

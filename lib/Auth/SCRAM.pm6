@@ -23,6 +23,7 @@ class SCRAM {
   has Callable $!CGH;
   has Bool $!case-preserved-profile;
 
+#`{{
   #-----------------------------------------------------------------------------
   submethod BUILD (
 
@@ -64,6 +65,57 @@ class SCRAM {
       self does Auth::SCRAM::Server;
       self.init(:server-object($helper-object));
     }
+  }
+}}
+
+  #-----------------------------------------------------------------------------
+  multi submethod BUILD (
+
+    Str :$username!,
+    Str :$password!,
+    Str :$authzid,
+    Bool :$case-preserved-profile = True,
+
+    Callable :$CGH = &sha1,
+    :$helper-object!,
+  ) {
+
+    $!CGH = $CGH;
+    $!pbkdf2 .= new(:$CGH);
+    $!case-preserved-profile = $case-preserved-profile;
+
+    if not $!role-imported {
+      need Auth::SCRAM::Client;
+      import Auth::SCRAM::Client;
+      $!role-imported = True;
+    }
+
+    self does Auth::SCRAM::Client;
+    self.init(
+      :$username, :$password, :$authzid, :client-object($helper-object)
+    );
+  }
+
+  #-----------------------------------------------------------------------------
+  multi submethod BUILD (
+
+    Bool :$case-preserved-profile = True,
+    Callable :$CGH = &sha1,
+    :$helper-object!,
+  ) {
+
+    $!CGH = $CGH;
+    $!pbkdf2 .= new(:$CGH);
+    $!case-preserved-profile = $case-preserved-profile;
+
+    if not $!role-imported {
+      need Auth::SCRAM::Server;
+      import Auth::SCRAM::Server;
+      $!role-imported = True;
+    }
+
+    self does Auth::SCRAM::Server;
+    self.init(:server-object($helper-object));
   }
 
   #-----------------------------------------------------------------------------

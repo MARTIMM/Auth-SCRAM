@@ -54,6 +54,15 @@ role SCRAM::Client {
   has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
+  # Need to install BUILD method to comply with the does operator in Auth::SCRAM
+  submethod BUILD (
+
+    Str :$username, Str :$password, Str :$authzid,
+    Bool :$case-preserved-profile = True,
+    Callable :$CGH, :$helper-object,
+  ) { }
+
+  #-----------------------------------------------------------------------------
   method init (
     Str:D :$username!,
     Str:D :$password!,

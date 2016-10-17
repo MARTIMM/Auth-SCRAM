@@ -55,6 +55,15 @@ role SCRAM::Server {
   has Buf $!server-signature;
 
   has Str $!error-message;
+
+  #-----------------------------------------------------------------------------
+  # Need to install BUILD method to comply with the does operator in Auth::SCRAM
+  submethod BUILD (
+
+    Bool :$case-preserved-profile = True,
+    Callable :$CGH, :$helper-object,
+  ) { }
+
   #-----------------------------------------------------------------------------
   method init ( :$server-object! --> Str ) {
 
