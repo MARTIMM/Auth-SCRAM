@@ -59,7 +59,7 @@ role SCRAM::Client {
 
     Str :$username, Str :$password, Str :$authzid,
     Bool :$case-preserved-profile = True,
-    Callable :$CGH, :$helper-object,
+    Callable :$CGH, :$client-object,
   ) { }
 
   #-----------------------------------------------------------------------------

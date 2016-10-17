@@ -61,7 +61,7 @@ role SCRAM::Server {
   submethod BUILD (
 
     Bool :$case-preserved-profile = True,
-    Callable :$CGH, :$helper-object,
+    Callable :$CGH, :$server-object,
   ) { }
 
   #-----------------------------------------------------------------------------
@@ -82,7 +82,7 @@ role SCRAM::Server {
   method generate-user-credentials (
     Str :$username, Str :$password,
     Buf :$salt, Int :$iter,
-    Any :$helper-object
+    Any :$server-object
 
     --> List
   ) {
@@ -90,7 +90,7 @@ role SCRAM::Server {
     my Buf $salted-password = self.derive-key(
       :$username, :$password, :enforce,
       :$salt, :$iter,
-      :$helper-object
+      :helper-object($server-object)
     );
 
     my Buf $client-key = self.client-key($salted-password);

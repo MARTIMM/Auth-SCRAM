@@ -11,11 +11,10 @@ use Unicode::PRECIS::FreeForm::OpaqueString;
 #-------------------------------------------------------------------------------
 unit package Auth;
 
-#TODO Keep information when calculated. User requst boolean
+#TODO Keep information when calculated. User request boolean
 #     and username/password/authzid must be kept the same. This saves time.
 
 #-------------------------------------------------------------------------------
-
 class SCRAM {
 
   has Bool $!role-imported = False;
@@ -78,7 +77,7 @@ class SCRAM {
     Bool :$case-preserved-profile = True,
 
     Callable :$CGH = &sha1,
-    :$helper-object!,
+    :$client-object!,
   ) {
 
     $!CGH = $CGH;
@@ -93,7 +92,7 @@ class SCRAM {
 
     self does Auth::SCRAM::Client;
     self.init(
-      :$username, :$password, :$authzid, :client-object($helper-object)
+      :$username, :$password, :$authzid, :$client-object
     );
   }
 
@@ -103,7 +102,7 @@ class SCRAM {
 
     Bool :$case-preserved-profile = True,
     Callable :$CGH = &sha1,
-    :$helper-object!,
+    :$server-object!,
   ) {
 
     $!CGH = $CGH;
@@ -117,7 +116,7 @@ class SCRAM {
     }
 
     self does Auth::SCRAM::Server;
-    self.init(:server-object($helper-object));
+    self.init(:$server-object);
   }
 
   #-----------------------------------------------------------------------------

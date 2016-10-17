@@ -53,7 +53,7 @@ subtest {
   my Auth::SCRAM $sc .= new(
     :username<user>,
     :password<pencil>,
-    :helper-object(MyClient.new)
+    :client-object(MyClient.new)
   );
   isa-ok $sc, Auth::SCRAM;
 
