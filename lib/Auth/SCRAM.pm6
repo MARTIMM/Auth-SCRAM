@@ -69,6 +69,7 @@ class SCRAM {
 }}
 
   #-----------------------------------------------------------------------------
+  # Client interface init
   multi submethod BUILD (
 
     Str :$username!,
@@ -97,6 +98,7 @@ class SCRAM {
   }
 
   #-----------------------------------------------------------------------------
+  # Server interface init
   multi submethod BUILD (
 
     Bool :$case-preserved-profile = True,
