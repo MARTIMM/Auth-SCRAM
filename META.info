@@ -1,5 +1,4 @@
 {
-  "author": "Marcel Timmerman",
   "authors": [
     "Marcel Timmerman"
   ],
@@ -7,7 +6,8 @@
     "Digest::HMAC",
     "OpenSSL::Digest",
     "Base64",
-    "PKCS5::PBKDF2"
+    "PKCS5::PBKDF2",
+    "Unicode::PRECIS"
   ],
   "description": "Salted Challenge Response Authentication Mechanism (SCRAM)",
   "license": "The Artistic License 2.0",
@@ -19,5 +19,5 @@
     "Auth::SCRAM::Server":    "lib/Auth/SCRAM/Server.pm6"
   },
   "source-url": "git://github.com/MARTIMM/Auth-SCRAM.git",
-  "version": "v0.4.1"
+  "version": "v0.4.3.1"
 }

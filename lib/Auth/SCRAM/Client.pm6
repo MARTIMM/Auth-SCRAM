@@ -17,7 +17,7 @@ role SCRAM::Client {
   has Str $!authzid = '';
 
   # Client side and server side communication. Pick one or the other.
-  has $!client-side;
+  has $!client-object;
 
   # Set these values before creating the messages
   # Nonce size in bytes
@@ -54,21 +54,30 @@ role SCRAM::Client {
   has Buf $!server-signature;
 
   #-----------------------------------------------------------------------------
+  # Need to install BUILD method to comply with the does operator in Auth::SCRAM
+  submethod BUILD (
+
+    Str :$username, Str :$password, Str :$authzid,
+    Bool :$case-preserved-profile = True,
+    Callable :$CGH, :$client-object,
+  ) { }
+
+  #-----------------------------------------------------------------------------
   method init (
     Str:D :$username!,
     Str:D :$password!,
     Str :$authzid,
-    :$client-side!
+    :$client-object!
   ) {
 
     $!username = $username;
     $!password = $password;
     $!authzid = $authzid;
-    $!client-side = $client-side;
+    $!client-object = $client-object;
 
     die 'message object misses some methods'
       unless self.test-methods(
-        $client-side,
+        $client-object,
         < client-first client-final error >
       );
   }
@@ -79,26 +88,25 @@ role SCRAM::Client {
     # Prepare message which must go to the server. Server returns a
     # its first server message.
     self!client-first-message;
-    $!server-first-message = $!client-side.client-first($!client-first-message);
+    $!server-first-message = $!client-object.client-first($!client-first-message);
 #say "server first message: ", $!server-first-message;
 
     my Str $error = self!process-server-first;
     if ?$error {
-      $!client-side.error($error);
+      $!client-object.error($error);
       return $error;
     }
 
     # Prepare the second and final message. Server returns its final message
     self!client-final-message;
-    $!server-final-message = $!client-side.client-final($!client-final-message);
-#say "server final message: ", $!server-final-message;
+    $!server-final-message = $!client-object.client-final($!client-final-message);
     $error = self!verify-server;
     if ?$error {
-      $!client-side.error($error);
+      $!client-object.error($error);
       return $error;
     }
 
-    $!client-side.cleanup if $!client-side.^can('cleanup');
+    $!client-object.cleanup if $!client-object.^can('cleanup');
     '';
   }
 
@@ -112,6 +120,7 @@ role SCRAM::Client {
   #-----------------------------------------------------------------------------
   method !set-gs2header ( ) {
 
+#TODO extensions
 #TODO normalize authzid?
     my $aid = ($!authzid.defined and $!authzid.chars) ?? "a=$!authzid" !! '';
 
@@ -159,7 +168,7 @@ role SCRAM::Client {
     $!salted-password = self.derive-key(
       :$!username, :$!password, :$!authzid, :!enforce
       :salt($!s-salt), :iter($!s-iter),
-      :helper-object($!client-side)
+      :helper-object($!client-object)
     );
 
     $!client-key = self.client-key($!salted-password);

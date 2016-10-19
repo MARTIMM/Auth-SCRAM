@@ -22,7 +22,7 @@ class Credentials {
   #-----------------------------------------------------------------------------
   submethod BUILD ( ) {
 
-    $!scram .= new(:server-side(self));
+    $!scram .= new( :server-object(self));
     isa-ok $!scram, Auth::SCRAM;
   }
 
@@ -32,7 +32,7 @@ class Credentials {
     for $!scram.generate-user-credentials(
       :$username, :$password,
       :$!salt, :$!iter,
-      :helper-object(self)
+      :server-object(self)
     ) -> $u, %h {
       $!credentials-db{$u} = %h;
     }

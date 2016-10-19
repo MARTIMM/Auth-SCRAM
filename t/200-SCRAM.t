@@ -25,7 +25,7 @@ class Credentials {
   submethod BUILD ( ) {
 
 #    $!scram .= new( :server-side(self), :basic-use);
-    $!scram .= new(:server-side(self));
+    $!scram .= new( :server-object(self));
     isa-ok $!scram, Auth::SCRAM;
   }
 
@@ -36,7 +36,7 @@ class Credentials {
       :$username, :$password,
       :salt(Buf.new( 65, 37, 194, 71, 228, 58, 177, 233, 60, 109, 255, 118)),
       :iter(4096),
-      :helper-object(self)
+      :server-object(self)
     ) -> $u, %h {
       $!credentials-db{$u} = %h;
     }
