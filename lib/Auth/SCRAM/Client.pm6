@@ -100,7 +100,6 @@ role SCRAM::Client {
     # Prepare the second and final message. Server returns its final message
     self!client-final-message;
     $!server-final-message = $!client-object.client-final($!client-final-message);
-#say "server final message: ", $!server-final-message;
     $error = self!verify-server;
     if ?$error {
       $!client-object.error($error);
@@ -121,6 +120,7 @@ role SCRAM::Client {
   #-----------------------------------------------------------------------------
   method !set-gs2header ( ) {
 
+#TODO extensions
 #TODO normalize authzid?
     my $aid = ($!authzid.defined and $!authzid.chars) ?? "a=$!authzid" !! '';
 

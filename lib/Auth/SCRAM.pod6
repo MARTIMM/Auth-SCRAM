@@ -1,56 +1,6 @@
-#!/usr/bin/env perl6
-#
 use v6.c;
 
-# Running the pod file will create a pdf using wkhtmltopdf
-my Str $pod = "$*PROGRAM";
-my Str $pdf = './doc/' ~ $pod.IO.basename;
-$pdf ~~ s/\. <-[.]>+ $/.pdf/;
-
-my Proc $p = shell "perl6 --doc=HTML '$pod'", :out;
-
-my Str $pod-css = 'doc/pod.css'.IO.abspath;
-my Str $html = '';
-
-# search for style line in the head and add a new one
-for $p.out.lines -> $line is copy {
-  if $line ~~ m/^ \s* '<link' \s* 'rel="stylesheet"' \s*
-                 'href="//design.perl6.org/perl.css"' \s*
-                 '>' $/ {
-    $html ~= qq|  <link rel="stylesheet" href="file://$pod-css">\n|;
-    $html ~= $line ~ "\n";
-  }
-
-  # wkhtml bug? replace id on body to h1 of title
-  elsif $line ~~ m/^ \s* '<body' \s* 'class="pod"' / {
-    $line ~~ s/'id="___top"'//;
-    $html ~= $line ~ "\n";
-  }
-
-  elsif $line ~~ m/^ \s* '<h1' \s* 'class=\'title\''/ {
-    $line ~~ s/'<h1' \s* /<h1 id="___top" /;
-    $html ~= $line ~ "\n";
-    last;
-  }
-
-  else {
-    $html ~= $line ~ "\n";
-  }
-}
-
-# copy rest of it
-for $p.out.lines -> $line { $html ~= $line ~ "\n"; }
-
-# send result to pdf generator
-$p = shell "wkhtmltopdf - '$pdf' &>.pdf.log", :in;
-$p.in.print($html);
-
-#say $html;
-
-#-------------------------------------------------------------------------------
-
 =begin pod
-
 
 =TITLE class Auth::SCRAM
 
@@ -61,89 +11,34 @@ $p.in.print($html);
 
 =head1 Synopsis
 
-=begin code
-  # User defined class with the task of communicating with a server
-  # for the authenticating process
-  class MyClient {
-
-    submethod BUILD {
-      # Establish server connection
-    }
-
-    method client-first ( Str:D $client-first-message --> Str ) {
-      # Send $client-first-message to server and return server
-      # response as server first message
-    }
-
-    method client-final ( Str:D $client-final-message --> Str ) {
-      # Send $client-final-message to server and return server
-      # response as server final message
-    }
-
-    method error ( Str:D $message --> Str ) {
-      # Errors? nah ... (Famous last words!)
-    }
-  }
-
-=end code
-
-=begin code
-  # Initialize SCRAM with above class
-  my Auth::SCRAM $sc .= new(
-    :username<user>,
-    :password<pencil>,
-    :helper-object(MyClient.new),
-  );
-
-  my Str $error = $sc.start-scram;
-
-=end code
-
-While a client authentication is shown above Auth::SCRAM itself does not do any
-of this. The user of the Auth::SCRAM class provides a client-side or a
-server-side object with which the initialization phase will upgrade the object
-to a Auth::SCRAM object with a C<Auth::SCRAM::Client> or C<Auth::SCRAM::Server>
-role.
-
-Specific details are shown in the pods for these role modules.
-
+See documentation of C<Auth::SCRAM::Client> and C<Auth::SCRAM::Server>.
 
 =head1 Methods
 
 Auth::SCRAM has some methods which are mostly used by the client or server roles
 and have not much use by the caller directly and are therefore not explained.
 
+
 =head2 new
 
-Defined as
+Client side BUILD is defined as
 
-  submethod BUILD (
-    Str :$username,
-    Str :$password,
+  multi submethod BUILD (
+    Str :$username!,
+    Str :$password!,
     Str :$authzid,
     Bool :$case-preserved-profile = True,
 
     Callable :$CGH = &sha1,
-    :$helper-object,
-    Bool :$client-helper = True,
+    :$client-object!,
   )
 
 Initialize the process. The Cryptographic Hash function C<$CGH> is by default
 set to C<&sha1> from the C<OpenSSL::Digest> module. The authorization
-id(C<$authzid>) is needed when you want things done with the privileges of
-someone else. The C<$helper-object> object is an object performing client or
-server side tasks. The methods in this object are called by the SCRAM methods.
-Only one of the client or server objects can be defined. The boolean
-C<$client-helper> specifies which type of object is provided.
-
-The username and password are required when client side operations are
-performed. username, password and authorization id is not needed when a server
-side object is given because it will be provided by the client via an account
-registration mechanism and the clients first message will provide the username
-and authorization id to work with.
-
-This method will take on the Client or Server role after inspecting the
-C<$client-helper> boolean.
+id(C<$authzid>) is needed when you want things done using the privileges of
+someone else. The C<$client-object> object is an object performing client side
+tasks. The methods in this object are called by the methods in the
+C<SCRAM::Client> Role.
 
 Usernames and password (and maybe the authorization id) must be normalized.
 Older versions of the scram process made use of SASLprep. This module will use
@@ -153,6 +48,22 @@ For usernames there is a profile to map case to lowercase and one to preserve
 it. This is controlled by the boolean C<$case-preserved-profile> and by default
 set to True. There is only one type of profile for passwords so no control
 needed there.
+
+Server side BUILD is defined as
+
+  multi submethod BUILD (
+
+    Bool :$case-preserved-profile = True,
+    Callable :$CGH = &sha1,
+    :$server-object!,
+  )
+
+The C<$server-object> object is an object performing server side tasks. The
+methods in this object are called by the methods in the C<SCRAM::Server> Role.
+Username, password and authorization id are not needed when a server side object
+is given because it will be provided by the client via an account registration
+mechanism and the clients first message will provide the username and
+authorization id to work with.
 
 For specific client and server information look for the roles C<SCRAM::Client>
 and C<SCRAM::Server>. The rest of the methods are explained here but are only to
