@@ -54,8 +54,6 @@ These attributes must be set before scram authentication is started.
 
 =head2 client nonce
 
-Defined as
-
   has Int $.c-nonce-size is rw = 24;
   has Str $.c-nonce is rw;
 
@@ -71,8 +69,6 @@ one of the default length of 24 octets and encode in base64.
 
 =head2 extension data
 
-Defined as
-
   has Str $.reserved-mext is rw;
   has Hash $.extensions is rw = %();
 
@@ -82,8 +78,6 @@ These variables are not yet used in this module.
 =head1 Methods
 
 =head2 init
-
-Defined as
 
   method init (
     Str:D :$username!, Str:D :$password!, Str :$authzid,
@@ -96,8 +90,6 @@ not call this function!
 
 =head2 start-scram
 
-Defined as
-
   method start-scram( --> Str ) {
 
 Start authentication. An error message is returned when an error is encountered.
@@ -107,13 +99,18 @@ defined when a server object is provided to the C<new()> method.
 The calls to the user provided client object are as follows;
 
 =item1 B<client-first>.
-This method must return the servers first message. Definition is
+This method must return the servers first message. The method must be declared
+like this:
 
   method client-first ( Str $client-first-message --> Str )
 
+Its purpose is to send the provided C<$client-first-message> to the server and
+to return the servers answer which is the servers first message.
+
 =item1 B<mangle-password>.
-Optional method to do some mangling stuff on the given arguments. The username
-and password are normalized before calling. Definition is
+This method is optional. Some servers, like mongod, need extra manipulations
+to mangle the data. The username and password are normalized before calling.
+The method must be declared like:
 
   method mangle-password (
     Str :$username, Str :$password, Str :$authzid,

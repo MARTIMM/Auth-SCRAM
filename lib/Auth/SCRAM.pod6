@@ -72,8 +72,6 @@ be used by the afore mentioned roles.
 
 =head2 derive-key
 
-Defined as
-
   method derive-key (
     Str:D :$username is copy, Str:D :$password is copy,
     Str :$authzid, Bool :$enforce = False,
@@ -83,7 +81,7 @@ Defined as
   )
 
 Calculate the derived key from the password, salt and number of iterations. The
-cryptoographic hash function is selected or provided at the instantiation phase.
+cryptographic hash function is selected or provided at the instantiation phase.
 
 The username and password are normalized using the PRECIS framework described
 above before calculating. Furthermore there are two procedures which can be
@@ -110,16 +108,12 @@ When the method is not defined, the following default action takes place;
 
 =head2 client-key
 
-Defined as
-
   method client-key ( Buf $salted-password --> Buf ) {
 
 See rfc5802
 
 
 =head2 stored-key
-
-Defined as
 
   method stored-key ( Buf $client-key --> Buf ) {
 
@@ -128,16 +122,12 @@ See rfc5802
 
 =head2 client-signature
 
-Defined as
-
   method client-signature ( Buf $stored-key, Str $auth-message --> Buf ) {
 
 See rfc5802
 
 
 =head2 server-key
-
-Defined as
 
   method server-signature ( Buf $server-key, Str $auth-message --> Buf ) {
 
@@ -146,16 +136,12 @@ See rfc5802
 
 =head2 XOR
 
-Defined as
-
   method XOR ( Buf $x1, Buf $x2 --> Buf ) {
 
 Perform XOR operation on two buffers returning the result of it.
 
 
 =head2 normalize
-
-Defined as
 
   method normalize (
     Str:D $text, Bool:D :$prep-username!, :$enforce = False
@@ -171,8 +157,6 @@ selects the normalization procedure prepare or enforce.
 
 =head2 encode-name
 
-Defined as
-
   method encode-name ( Str $name is copy --> Str ) {
 
 Usernames must be encoded to protect the string format against use of some characters.
@@ -181,16 +165,12 @@ These are ',' and '='. They must be translated to '=2C' and '=3D' resp.
 
 =head2 decode-name
 
-Defined as
-
   method decode-name ( Str $name is copy --> Str ) {
 
 This is the reversed process of encode-name.
 
 
 =head2 test-methods
-
-Defined as
 
   method test-methods ( $obj, @methods --> Bool ) {
 
