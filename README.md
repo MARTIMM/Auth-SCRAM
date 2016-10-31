@@ -1,6 +1,7 @@
 # Salted Challenge Response Authentication Mechanism (SCRAM)
 
 [![Build Status](https://travis-ci.org/MARTIMM/Auth-SCRAM.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
+[![License](http://martimm.github.io/label/License-label.svg)](http://www.perlfoundation.org/artistic_license_2_0)
 
 This package implements secure authentication mechanism.
 
@@ -76,10 +77,6 @@ This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c
 ## CHANGELOG
 
 For changes look for the file doc/CHANGES.md in this repository.
-
-## LICENSE
-
-Released under [Artistic License 2.0](http://www.perlfoundation.org/artistic_license_2_0).
 
 ## AUTHORS
 
