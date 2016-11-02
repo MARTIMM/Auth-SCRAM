@@ -66,7 +66,13 @@ mechanism and the clients first message will provide the username and
 authorization id to work with.
 
 For specific client and server information look for the roles C<SCRAM::Client>
-and C<SCRAM::Server>. The rest of the methods are explained here but are only to
+and C<SCRAM::Server>.
+
+=end pod
+#===============================================================================
+=finish
+
+The rest of the methods are explained here but are only to
 be used by the afore mentioned roles.
 
 
