@@ -137,7 +137,7 @@ class SCRAM {
     my Buf $mangled-password;
     if $helper-object.^can('mangle-password') {
       $mangled-password = $helper-object.mangle-password(
-        :$username, :$password, :$authzid, :scram-obj(self)
+        :$username, :$password, :$authzid
       );
     }
 
