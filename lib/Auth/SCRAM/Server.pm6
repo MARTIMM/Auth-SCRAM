@@ -15,7 +15,6 @@ role SCRAM::Server {
   has Str $!username;
   has Str $!password;
   has Str $!authzid = '';
-#  has Bool $!strings-are-prepped = False;
 
   has $!server-object;
 
@@ -98,17 +97,17 @@ role SCRAM::Server {
     my Buf $server-key = self.server-key($salted-password);
 
     # Return the prepped username and the credential data
-    ( $username,
+    ( self.normalize( $username, :prep-username, :enforce),
       %( iter => $iter,
-       salt => encode-base64( $salt, :str),
-       stored-key => encode-base64( $stored-key, :str),
-       server-key => encode-base64( $server-key, :str)
+         salt => encode-base64( $salt, :str),
+         stored-key => encode-base64( $stored-key, :str),
+         server-key => encode-base64( $server-key, :str)
       )
     );
   }
 
   #-----------------------------------------------------------------------------
-  method start-scram( Str:D :$client-first-message! --> Str ) {
+  method start-scram( Str:D :$client-first-message --> Str ) {
 
     $!client-first-message = $client-first-message;
     my Str $error = self!process-client-first;
@@ -168,7 +167,6 @@ role SCRAM::Server {
             $!username ~~ m:g/ '=' $<code>=[.?.?] /;
 
             $!username = self.decode-name($!username);
-# TODO Normalize?
 
             for @$/ -> $c {
               return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;
@@ -226,9 +224,8 @@ role SCRAM::Server {
   #                   iteration-count ["," extensions]
   method !server-first-message ( ) {
 
-    my Hash $credentials = $!server-object.credentials(
-      $!username, $!authzid
-    );
+#TODO needed?, $!authzid
+    my Hash $credentials = $!server-object.credentials($!username);
     return 'unknown-user' unless $credentials.elems;
 
     $!s-salt = Buf.new(decode-base64($credentials<salt>));
@@ -285,9 +282,8 @@ role SCRAM::Server {
 
 #say "AML $!auth-message";
 
-        my Hash $credentials = $!server-object.credentials(
-          $!username, $!authzid
-        );
+#TODO needed?, $!authzid
+        my Hash $credentials = $!server-object.credentials($!username);
         return 'unknown-user' unless $credentials.elems;
 
         $!stored-key = Buf.new(decode-base64($credentials<stored-key>));

@@ -1,6 +1,7 @@
 # Salted Challenge Response Authentication Mechanism (SCRAM)
 
 [![Build Status](https://travis-ci.org/MARTIMM/Auth-SCRAM.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
+[![License](http://martimm.github.io/label/License-label.svg)](http://www.perlfoundation.org/artistic_license_2_0)
 
 This package implements secure authentication mechanism.
 
@@ -53,7 +54,21 @@ my $error = $sc.start-scram;
 
 ## DOCUMENTATION
 
-See pod documentation in lib/SCRAM.pod6, lib/SCRAM/Client.pod6 and lib/SCRAM/Server.pod6
+See pod documentation in lib
+* [SCRAM](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM.pod6)
+* [SCRAM::Client](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM/Client.pod6)
+* [SCRAM::Server](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM/Server.pod6)
+
+or pdf format in doc
+* [SCRAM](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/SCRAM.pdf)
+* [SCRAM::Client](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/Client.pdf)
+* [SCRAM::Server](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/Server.pdf)
+
+Change log
+* [Release notes](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/CHANGES.md)
+
+Bugs, todo and known limitations
+* [Bugs, todo](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/TODO.md)
 
 ## INSTALLING THE MODULES
 
@@ -61,25 +76,14 @@ Use panda to install the package like so.
 ```
 $ panda install Auth-SCRAM
 ```
+or
+```
+$ zef install Auth-SCRAM
+```
 
 ## Versions of PERL, MOARVM
 
 This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c.
-
-## BUGS, KNOWN LIMITATIONS
-
-## TODO
-
-* Keep information when calculated. User request boolean and username/password/authzid tuple must be kept the same. This saves time.
-* Channel binding and several other checks
-
-## CHANGELOG
-
-For changes look for the file doc/CHANGES.md in this repository.
-
-## LICENSE
-
-Released under [Artistic License 2.0](http://www.perlfoundation.org/artistic_license_2_0).
 
 ## AUTHORS
 

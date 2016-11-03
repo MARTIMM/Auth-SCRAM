@@ -54,8 +54,6 @@ These attributes must be set before scram authentication is started.
 
 =head2 client nonce
 
-Defined as
-
   has Int $.c-nonce-size is rw = 24;
   has Str $.c-nonce is rw;
 
@@ -68,10 +66,11 @@ one of the default length of 24 octets and encode in base64.
     :str
   );
 
+Normally it will not be needed to make one yourself. It was made available for
+testing purposes.
+
 
 =head2 extension data
-
-Defined as
 
   has Str $.reserved-mext is rw;
   has Hash $.extensions is rw = %();
@@ -81,9 +80,9 @@ These variables are not yet used in this module.
 
 =head1 Methods
 
+=end pod
+#`{{
 =head2 init
-
-Defined as
 
   method init (
     Str:D :$username!, Str:D :$password!, Str :$authzid,
@@ -92,11 +91,11 @@ Defined as
 
 Initialize the process. Method is called from BUILD in Auth::SCRAM. User should
 not call this function!
+}}
 
+=begin pod
 
 =head2 start-scram
-
-Defined as
 
   method start-scram( --> Str ) {
 
@@ -106,23 +105,50 @@ defined when a server object is provided to the C<new()> method.
 
 The calls to the user provided client object are as follows;
 
-=item1 B<client-first>.
-This method must return the servers first message. Definition is
+=item1 B<client-first>. This method must return the servers first message. The
+method must be declared like this:
 
-  method client-first ( Str $client-first-message --> Str )
+  method client-first ( Str:D $client-first-message --> Str )
 
-=item1 B<mangle-password>.
-Optional method to do some mangling stuff on the given arguments. The username
-and password are normalized before calling. Definition is
+Its purpose is to send the provided C<$client-first-message> to the server and
+to return the servers answer which is the servers first message.
+
+=item1 B<mangle-password>. This method is optional. Some servers, like mongod,
+need extra manipulations to mangle the data. The username and password are
+normalized before calling. The method must be declared like:
 
   method mangle-password (
-    Str :$username, Str :$password, Str :$authzid,
-    Auth::SCRAM :$scram-obj
+    Str :$username, Str :$password, Str :$authzid 
     --> Buf
   )
 
-When not defined, the following action is done
+When not defined, the following action is done instead
 
   my Buf $mangled-password = Buf.new($password.encode);
 
+=item1 B<client-final>. The purpose of this method is to send the provided
+client final message to the server. The server returns a verification of its
+own identity after accepting the clients message. This message must be returned
+to the caller. Declare it as follows;
+
+  method client-final ( Str:D $client-final-message --> Str )
+
+=item1 B<error>. The error method is called with a message whenever there is
+something wrong. This gives the object the opportunity to do last resort
+operations like closing ports etc. The procedure is then terminated after
+returning from the error method and the procedure will return the same message
+to the caller of C<start-scram>.
+
+  method error ( Str:D $message )
+
+=item1 B<cleanup>. This optional method is called when all ends successfully.
+After returning from this method it returns an empty string('') to the caller of
+C<start-scram>
+
+  method cleanup()
+
 =end pod
+
+
+
+

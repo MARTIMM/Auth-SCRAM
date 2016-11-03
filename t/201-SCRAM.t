@@ -39,7 +39,8 @@ class Credentials {
   }
 
   #-----------------------------------------------------------------------------
-  method credentials ( Str $username, Str $authzid --> Hash ) {
+#TODO needed?, $!authzid
+  method credentials ( Str $username --> Hash ) {
 
 #TODO what to do with authzid
     return $!credentials-db{$username} // {};
