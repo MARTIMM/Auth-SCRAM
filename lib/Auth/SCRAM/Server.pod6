@@ -4,7 +4,7 @@ use v6.c;
 
 =TITLE role Auth::SCRAM::Server
 
-=SUBTITLE Client side authentication using SCRAM
+=SUBTITLE Server side authentication using SCRAM
 
   unit package Auth;
   class SCRAM::Server { ... }
