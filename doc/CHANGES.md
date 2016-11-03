@@ -4,6 +4,9 @@ See [semantic versioning](http://semver.org/). Please note point 4. on
 that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
+* 0.4.4
+  * Removed todo from Server.pm6
+  * Completed documentation
 * 0.4.3
   * Pod doc using pod-render. pod.css is thrown away.
   * Managed to use multi BUILDs so interface is slimmed down and less checks are needed.

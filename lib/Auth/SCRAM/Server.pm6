@@ -167,7 +167,6 @@ role SCRAM::Server {
             $!username ~~ m:g/ '=' $<code>=[.?.?] /;
 
             $!username = self.decode-name($!username);
-# TODO Normalize?
 
             for @$/ -> $c {
               return 'invalid-encoding' unless $c<code> ~~ m:i/ '2c' | '3d' /;
