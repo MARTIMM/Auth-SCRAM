@@ -6,7 +6,7 @@
     "Digest::HMAC",
     "OpenSSL",
     "Base64",
-    "PKCS5::PBKDF2",
+    "PKCS5",
     "Unicode::PRECIS"
   ],
   "description": "Salted Challenge Response Authentication Mechanism (SCRAM)",
