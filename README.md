@@ -1,6 +1,7 @@
 # Salted Challenge Response Authentication Mechanism (SCRAM)
 
 [![Build Status](https://travis-ci.org/MARTIMM/Auth-SCRAM.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/MARTIMM/auth-scram?branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20FAIL&pendingText=Windows%20-%20pending&svg=true)](https://ci.appveyor.com/project/MARTIMM/auth-scram/branch/master)
 [![License](http://martimm.github.io/label/License-label.svg)](http://www.perlfoundation.org/artistic_license_2_0)
 
 This package implements secure authentication mechanism.
@@ -52,14 +53,8 @@ $sc.c-nonce = 'fyko+d2lbbFgONRv9qkxdawL';
 my $error = $sc.start-scram;
 ```
 
-## DOCUMENTATION
+## Documentation
 
-See pod documentation in lib
-* [SCRAM](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM.pod6)
-* [SCRAM::Client](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM/Client.pod6)
-* [SCRAM::Server](https://github.com/MARTIMM/Auth-SCRAM/blob/master/lib/Auth/SCRAM/Server.pod6)
-
-or pdf format in doc
 * [SCRAM](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/SCRAM.pdf)
 * [SCRAM::Client](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/Client.pdf)
 * [SCRAM::Server](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/Server.pdf)
@@ -70,7 +65,7 @@ Change log
 Bugs, todo and known limitations
 * [Bugs, todo](https://github.com/MARTIMM/Auth-SCRAM/blob/master/doc/TODO.md)
 
-## INSTALLING THE MODULES
+## Installing
 
 Use panda to install the package like so.
 ```
@@ -85,11 +80,8 @@ $ zef install Auth-SCRAM
 
 This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c.
 
-## AUTHORS
+## Authors
 
 ```
 Marcel Timmerman (MARTIMM on github)
 ```
-## CONTACT
-
-MARTIMM on github: PKCS5
