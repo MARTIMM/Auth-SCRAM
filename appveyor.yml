@@ -14,6 +14,7 @@ install:
   - appveyor DownloadFile "http://rakudo.org/downloads/star/rakudo-star-2016.04-x86_64 (JIT).msi" -FileName "%APPVEYOR_BUILD_FOLDER%\rakudo.msi"
   - msiexec /i rakudo.msi /quiet /qn /norestart /log install.log
   - SET PATH=C:\rakudo\bin;C:\rakudo\share\perl6\site\bin;%PATH%
+  - panda install PKCS5
   - panda installdeps .
 
 build: off
