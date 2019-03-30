@@ -4,6 +4,8 @@ See [semantic versioning](http://semver.org/). Please note point 4. on
 that page: *Major version zero (0.y.z) is for initial development. Anything may
 change at any time. The public API should not be considered stable.*
 
+* 29-03-2019 0.4.7
+  * Small changes due to the wrong interpretation of normalization in the mongodb servers. Should be changed later. Issue is reported in 2016. The changes are only important when there is a need to run mangle-password(). The normalization process now takes place after this call and is handled as a password preparation. 
 * 0.4.6
   * Appveyor test implementation
 * 0.4.5
