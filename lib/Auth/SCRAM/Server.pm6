@@ -134,7 +134,6 @@ role SCRAM::Server {
   #-----------------------------------------------------------------------------
   method !process-client-first ( --> Str ) {
 
-#say "PC 1st: $!client-first-message";
     # First get the gs2 header
     for $!client-first-message.split( ',', 3) {
 
@@ -254,7 +253,6 @@ role SCRAM::Server {
   #-----------------------------------------------------------------------------
   method !process-client-final ( --> Str ) {
 
-#say "PC 1st: $!client-final-message";
     for $!client-final-message.split(',') {
       when /^ 'c=' / {
         $!channel-binding = $_;
@@ -280,7 +278,6 @@ role SCRAM::Server {
         $proof ~~ s/^ 'p=' //;
         $!client-proof = Buf.new(decode-base64($proof));
 
-#say "AML $!auth-message";
 
 #TODO needed?, $!authzid
         my Hash $credentials = $!server-object.credentials($!username);
@@ -293,7 +290,6 @@ role SCRAM::Server {
         $!client-key = self.XOR( $!client-proof, $!client-signature);
 
         my Str $st-key = encode-base64( self.stored-key($!client-key), :str);
-#say "Stored-keys: $st-key, $credentials<stored-key>";
         return 'invalid-proof' if $st-key ne $credentials<stored-key>;
 
         $!server-key = Buf.new(decode-base64($credentials<server-key>));

@@ -70,14 +70,9 @@ class SCRAM {
   #-----------------------------------------------------------------------------
   # Client interface init
   multi submethod BUILD (
-
-    Str :$username!,
-    Str :$password!,
-    Str :$authzid,
-    Bool :$case-preserved-profile = True,
-
-    Callable :$CGH = &sha1,
-    :$client-object!,
+    Str :$username!, Str :$password!,
+    Str :$authzid, Bool :$case-preserved-profile = True,
+    Callable :$CGH = &sha1, :$client-object!,
   ) {
 
     $!CGH = $CGH;
@@ -99,10 +94,8 @@ class SCRAM {
   #-----------------------------------------------------------------------------
   # Server interface init
   multi submethod BUILD (
-
     Bool :$case-preserved-profile = True,
-    Callable :$CGH = &sha1,
-    :$server-object!,
+    Callable :$CGH = &sha1, :$server-object!,
   ) {
 
     $!CGH = $CGH;
@@ -134,18 +127,21 @@ class SCRAM {
 
     # Using named arguments, the clients object doesn't need to
     # support all variables as long as a Buf is returned
-    my Buf $mangled-password;
     if $helper-object.^can('mangle-password') {
-      $mangled-password = $helper-object.mangle-password(
+      $password = $helper-object.mangle-password(
         :$username, :$password, :$authzid
       );
     }
 
-    else {
-      $mangled-password = Buf.new($password.encode);
-    }
+    #else {
+    #  $password = self.normalize( $password, :!prep-username, :$enforce);
+    #  $mangled-password = Buf.new($password.encode);
+    #  $mangled-password = Buf.new(
+    #    self.normalize( $password, :!prep-username, :$enforce).encode
+    #  );
+    #}
 
-    $!pbkdf2.derive( $mangled-password, $salt, $iter);
+    $!pbkdf2.derive( Buf.new($password.encode), $salt, $iter);
   }
 
   #-----------------------------------------------------------------------------

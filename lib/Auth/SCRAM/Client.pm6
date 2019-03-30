@@ -64,10 +64,8 @@ role SCRAM::Client {
 
   #-----------------------------------------------------------------------------
   method init (
-    Str:D :$username!,
-    Str:D :$password!,
-    Str :$authzid,
-    :$client-object!
+    Str:D :$username!, Str:D :$password!,
+    Str :$authzid, :$client-object!
   ) {
 
     $!username = $username;
@@ -88,8 +86,10 @@ role SCRAM::Client {
     # Prepare message which must go to the server. Server returns a
     # its first server message.
     self!client-first-message;
-    $!server-first-message = $!client-object.client-first($!client-first-message);
-#say "server first message: ", $!server-first-message;
+    $!server-first-message = $!client-object.client-first(
+      $!client-first-message
+    );
+#note "server first message: ", $!server-first-message;
 
     my Str $error = self!process-server-first;
     if ?$error {
@@ -99,14 +99,19 @@ role SCRAM::Client {
 
     # Prepare the second and final message. Server returns its final message
     self!client-final-message;
-    $!server-final-message = $!client-object.client-final($!client-final-message);
+    $!server-final-message = $!client-object.client-final(
+      $!client-final-message
+    );
+#note "Client final: $!client-final-message";
+#note "Server final: $!server-final-message";
+
     $error = self!verify-server;
     if ?$error {
       $!client-object.error($error);
       return $error;
     }
 
-    $!client-object.cleanup if $!client-object.^can('cleanup');
+    $!client-object.?cleanup;
     '';
   }
 
@@ -131,13 +136,14 @@ role SCRAM::Client {
   #-----------------------------------------------------------------------------
   method !set-client-first ( ) {
 
-    $!client-first-message-bare = 
+    $!client-first-message-bare =
       ( $!reserved-mext.defined and $!reserved-mext.chars )
         ?? "m=$!reserved-mext,"
         !! '';
 
-    my Str $uname = self.encode-name($!username);
-    $uname = self.normalize( $uname, :prep-username, :!enforce);
+    my Str $uname = $!username;
+    #my Str $uname = self.encode-name($!username);
+    #$uname = self.normalize( $uname, :prep-username, :!enforce);
     $!client-first-message-bare ~= "n=$uname,";
 
     $!c-nonce = encode-base64(
@@ -179,7 +185,7 @@ role SCRAM::Client {
     $!channel-binding = "c=biws";
     $!client-final-without-proof = "$!channel-binding,r=$!s-nonce";
 
-    $!auth-message = 
+    $!auth-message =
       ( $!client-first-message-bare,
         $!server-first-message,
         $!client-final-without-proof
@@ -190,8 +196,7 @@ role SCRAM::Client {
 
     $!client-final-message =
       [~] $!client-final-without-proof,
-          ',p=',
-          encode-base64( $!client-proof, :str);
+          ',p=', encode-base64( $!client-proof, :str);
   }
 
   #-----------------------------------------------------------------------------
@@ -203,7 +208,7 @@ role SCRAM::Client {
     return $error if $error;
 
     ( my $nonce, my $salt, my $iter) = $!server-first-message.split(',');
-
+#note "N,S,I: $nonce, $salt, $iter";
     $nonce ~~ s/^ 'r=' //;
     $error = 'no nonce found' if !? $nonce or !?$/; # Check s/// operation too
     return $error if $error;
@@ -221,7 +226,7 @@ role SCRAM::Client {
     $!s-salt = decode-base64( $salt, :bin);
     $!s-iter = $iter.Int;
 
-    $error;
+    $error
   }
 
   #-----------------------------------------------------------------------------
@@ -240,6 +245,8 @@ role SCRAM::Client {
 
       $!server-key = self.server-key($!salted-password);
       $!server-signature = self.server-signature( $!server-key, $!auth-message);
+#note "Server key: ", $!server-key.perl;
+#note "Server signature: ", $!server-signature.perl;
 
       if encode-base64( $!server-signature, :str) ne $sv {
         $error = 'Server verification failed';
