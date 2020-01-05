@@ -245,8 +245,6 @@ role SCRAM::Client {
 
       $!server-key = self.server-key($!salted-password);
       $!server-signature = self.server-signature( $!server-key, $!auth-message);
-#note "Server key: ", $!server-key.perl;
-#note "Server signature: ", $!server-signature.perl;
 
       if encode-base64( $!server-signature, :str) ne $sv {
         $error = 'Server verification failed';
