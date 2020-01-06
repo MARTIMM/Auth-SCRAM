@@ -5,7 +5,7 @@ platform: x64
 branches:
   # whitelist
   only:
-    - master
+#    - master
     - raku-rename
 
 install:
