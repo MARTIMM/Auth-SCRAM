@@ -67,18 +67,14 @@ Bugs, todo and known limitations
 
 ## Installing
 
-Use panda to install the package like so.
-```
-$ panda install Auth-SCRAM
-```
-or
+Use zef to install the package like so.
 ```
 $ zef install Auth-SCRAM
 ```
 
-## Versions of PERL, MOARVM
+## Versions of Raku using moarvm
 
-This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c.
+This project is tested with latest Rakudo built on MoarVM implementing Perl v6.d.
 
 ## Authors
 
