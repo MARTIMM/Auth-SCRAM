@@ -1,7 +1,7 @@
 {
   "description": "Salted Challenge Response Authentication Mechanism (SCRAM)",
   "name": "Auth::SCRAM",
-  "version": "0.4.8",
+  "version": "0.4.7.5",
   "authors": ["Marcel Timmerman"],
   "depends": [
     "Digest::HMAC",
