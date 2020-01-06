@@ -10,7 +10,7 @@
     "PKCS5",
     "Unicode::PRECIS"
   ],
-  "perl": "6",
+  "perl": "6.d",
   "license": "Artistic-2.0",
   "provides": {
     "Auth::SCRAM":            "lib/Auth/SCRAM.pm6",
