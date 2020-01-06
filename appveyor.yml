@@ -10,8 +10,8 @@ branches:
 
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
-  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain"
-  - bash -lc "pacman -S mingw-w64-x86_64-toolchain base-devel"
+#  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain"
+#  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain base-devel"
 #  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
 #  - cmd: dir C:\program files
 #  - cmd: dir C:\windows
