@@ -10,13 +10,13 @@ branches:
 
 install:
   - set PATH=C:\msys64\usr\bin;%PATH%
-  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain"
-#  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain base-devel"
+#  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain"
+  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-toolchain base-devel"
 #  - bash -lc "pacman -S --noconfirm mingw-w64-x86_64-gtk3"
 #  - cmd: dir C:\program files
 #  - cmd: dir C:\windows
 
-  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
+#  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
 #  - choco feature enable -n allowEmptyChecksums
 #  - choco install strawberryperl
 #  - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
