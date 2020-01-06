@@ -1,7 +1,9 @@
 # Salted Challenge Response Authentication Mechanism (SCRAM)
 
 [![Build Status](https://travis-ci.org/MARTIMM/Auth-SCRAM.svg?branch=master)](https://travis-ci.org/MARTIMM/Auth-SCRAM)
+<!--
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/MARTIMM/auth-scram?branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20FAIL&pendingText=Windows%20-%20pending&svg=true)](https://ci.appveyor.com/project/MARTIMM/auth-scram/branch/master)
+-->
 [![License](http://martimm.github.io/label/License-label.svg)](http://www.perlfoundation.org/artistic_license_2_0)
 
 This package implements secure authentication mechanism.
@@ -67,18 +69,14 @@ Bugs, todo and known limitations
 
 ## Installing
 
-Use panda to install the package like so.
-```
-$ panda install Auth-SCRAM
-```
-or
+Use zef to install the package like so.
 ```
 $ zef install Auth-SCRAM
 ```
 
-## Versions of PERL, MOARVM
+## Versions of Raku using moarvm
 
-This project is tested with latest Rakudo built on MoarVM implementing Perl v6.c.
+This project is tested with latest Rakudo built on MoarVM implementing Perl v6.d.
 
 ## Authors
 

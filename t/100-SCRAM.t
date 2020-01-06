@@ -1,6 +1,4 @@
-#!/usr/bin/env perl6
-
-use v6.c;
+use v6.d;
 use Test;
 
 use Auth::SCRAM;
