@@ -4,6 +4,8 @@ use Test;
 use Auth::SCRAM;
 
 #-------------------------------------------------------------------------------
+# https://tools.ietf.org/html/rfc5802
+#
 # Example from rfc
 # C: n,,n=user,r=fyko+d2lbbFgONRv9qkxdawL
 # S: r=fyko+d2lbbFgONRv9qkxdawL3rfcNHYJY1ZVvWVs7j,s=QSXCR+Q6sek8bf92,i=4096
