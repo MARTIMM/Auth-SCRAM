@@ -1,0 +1,23 @@
+skinparam packageStyle rectangle
+skinparam stereotypeCBackgroundColor #80ffff
+set namespaceSeparator ::
+hide members
+
+
+'Class and interface decorations
+
+Interface Auth::SCRAM::Client <Interface>
+class Auth::SCRAM::Client <<(R,#80ffff)>>
+
+Interface Auth::SCRAM::Server <Interface>
+class Auth::SCRAM::Server <<(R,#80ffff)>>
+
+
+
+'Class connections
+
+Auth::SCRAM ..|> Auth::SCRAM::Client
+Auth::SCRAM ..|> Auth::SCRAM::Server
+
+
+UserClass -|> Auth::SCRAM
