@@ -1,0 +1,50 @@
+name: 'Auh::SCRAM testing'
+run-name: Testing package by ${{ github.actor }}
+
+on: 
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  check-test-software:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Install raku
+        run: |
+          sudo apt-get update
+          sudo apt install rakudo
+ 
+      - name: Install zef
+        run: |
+          git clone https://github.com/ugexe/zef
+          cd zef
+          raku -Ilib bin/zef install .
+
+      - name: Install prove
+        run: |
+          zef install App::Prove6
+
+      - name do tests
+        run: |
+          cd {{ $github_workspace }}
+          prove6 -v -Ilib t/
+
+
+
+#    paths-ignore:
+#      - '!doc/*'
+#      - '!docs/*'
+#    runs-on: windows-latest
+#    runs-on: macos-latest
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: '14'
+#      - run: npm install -g bats
+#      - run: bats -v
+
+
+# ubuntu-latest
+# has mongodb and libgtk3
