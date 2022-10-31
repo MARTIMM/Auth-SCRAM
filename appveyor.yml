@@ -5,7 +5,8 @@ platform: x64
 branches:
   # whitelist
   only:
-    - main
+#    - main
+    - someBranch
 
 install:
 #  - set PATH=C:\msys64\usr\bin;%PATH%
