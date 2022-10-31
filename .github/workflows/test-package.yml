@@ -27,7 +27,7 @@ jobs:
         run: |
           zef install App::Prove6
 
-      - name do tests
+      - name: do tests
         run: |
           cd {{ $github_workspace }}
           prove6 -v -Ilib t/
