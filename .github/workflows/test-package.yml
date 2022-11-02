@@ -8,6 +8,9 @@ on:
 jobs:
   check-test-software:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_PATH: "/usr/bin;/usr/local/bin"
+
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
