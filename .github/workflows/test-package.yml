@@ -17,11 +17,14 @@ jobs:
 
       - name: Install raku
         run: |
+          echo "{path}, {$github_workspace}, {$GITHUB_PATH}"
           sudo apt-get update
           sudo apt install rakudo
  
       - name: Install zef
         run: |
+          echo "{path}"
+          ls /usr/bin/r*
           git clone https://github.com/ugexe/zef
           cd zef
           raku -Ilib bin/zef install .
