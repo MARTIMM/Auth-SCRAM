@@ -38,15 +38,15 @@ jobs:
         run: |
           echo "{$RAKUPATH}" >> $GITHUB_PATH
           echo "$PATH"
-          zef install App::Prove6
+          zef install 'App::Prove6'
 
       - name: do tests
         run: |
           echo "{$RAKUPATH}" >> $GITHUB_PATH
-#          cd {{ $GITHUB_WORKSPACE }}
           prove6 -v -Ilib t/
 
 
+#          cd {{ $GITHUB_WORKSPACE }}
 
 #    paths-ignore:
 #      - '!doc/*'
