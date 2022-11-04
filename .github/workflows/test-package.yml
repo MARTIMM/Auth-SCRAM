@@ -8,8 +8,8 @@ on:
 jobs:
   check-test-software:
     runs-on: ubuntu-latest
-#    env:
-#      PATH: "/usr/bin;/usr/local/bin"
+    env:
+      RAKUPATH: "/usr/share/perl6/site/bin;/usr/share/perl6/bin;/usr/share/perl6/core/bin;/usr/share/perl6/vendor/bin"
 
     steps:
       - name: Check out repository code
@@ -20,7 +20,8 @@ jobs:
           echo "$PATH, $github_workspace"
           sudo apt-get update
           sudo apt install rakudo
- 
+          rehash
+
       - name: Install zef
         run: |
           echo "$PATH"
@@ -28,13 +29,16 @@ jobs:
           git clone https://github.com/ugexe/zef
           cd zef
           raku -Ilib bin/zef install .
+          rehash
 
       - name: Install prove
         run: |
+          echo "{$RAKUPATH}" >> $GITHUB_PATH
           zef install App::Prove6
 
       - name: do tests
         run: |
+          echo "{$RAKUPATH}" >> $GITHUB_PATH
           cd {{ $github_workspace }}
           prove6 -v -Ilib t/
 
