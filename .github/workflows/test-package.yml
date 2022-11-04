@@ -20,7 +20,6 @@ jobs:
           echo "$PATH, $github_workspace"
           sudo apt-get update
           sudo apt install rakudo
-          rehash
 
       - name: Install zef
         run: |
@@ -28,8 +27,7 @@ jobs:
           ls /usr/bin/r*
           git clone https://github.com/ugexe/zef
           cd zef
-          raku -Ilib bin/zef install .
-          rehash
+          /usr/bin/raku -Ilib bin/zef install .
 
       - name: Install prove
         run: |
