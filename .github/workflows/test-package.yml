@@ -5,6 +5,10 @@ on:
   push:
     branches: [ main, develop ]
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   check-test-software:
     runs-on: ubuntu-latest
@@ -24,20 +28,22 @@ jobs:
       - name: Install zef
         run: |
           echo "$PATH"
-          ls /usr/bin/r*
+          ls -l /usr/bin/rak*
           git clone https://github.com/ugexe/zef
           cd zef
           /usr/bin/raku -Ilib bin/zef install .
+          cd ..
 
       - name: Install prove
         run: |
           echo "{$RAKUPATH}" >> $GITHUB_PATH
+          echo "$PATH"
           zef install App::Prove6
 
       - name: do tests
         run: |
           echo "{$RAKUPATH}" >> $GITHUB_PATH
-          cd {{ $github_workspace }}
+#          cd {{ $GITHUB_WORKSPACE }}
           prove6 -v -Ilib t/
 
 
