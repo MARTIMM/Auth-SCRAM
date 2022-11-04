@@ -31,7 +31,7 @@ jobs:
           ls -l /usr/bin/rak*
           git clone https://github.com/ugexe/zef
           cd zef
-          /usr/bin/raku -Ilib bin/zef install .
+          /usr/bin/rakudo -Ilib bin/zef install .
           cd ..
 
       - name: Install prove
