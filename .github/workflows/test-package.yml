@@ -24,6 +24,7 @@ jobs:
           echo "$PATH, $github_workspace"
           sudo apt-get update
           sudo apt install rakudo
+          rakudo -v
 
       - name: Install zef
         run: |
