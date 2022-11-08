@@ -22,19 +22,12 @@ jobs:
       - name: Install raku
         run: |
           echo "$PATH, $github_workspace"
-# The version of this installation is too old and gives problems with
-# modern modules and programs. E.g. installation of zef fails because of that.
-# Version: 2019.11, MoarVM 2019.11. (Now v2022.07 installed by hand from github)
-#          sudo apt-get update
-#          sudo apt install rakudo
-
           git clone https://github.com/rakudo/rakudo
           cd rakudo
           perl Configure.pl --gen-moar --gen-nqp --backends=moar
           make test
           make install
           cd ..
-          
           echo "${GITHUB_WORKSPACE}/rakudo/install/bin" >> $GITHUB_PATH
           echo "${GITHUB_WORKSPACE}/rakudo/install/share/perl6/site/bin" >> $GITHUB_PATH
           rakudo -v
@@ -59,6 +52,12 @@ jobs:
           echo "{$RAKUPATH}" >> $GITHUB_PATH
           prove6 -v -Ilib t/
 
+
+# The version of this installation is too old and gives problems with
+# modern modules and programs. E.g. installation of zef fails because of that.
+# Version: 2019.11, MoarVM 2019.11. (Now v2022.07 installed by hand from github)
+#          sudo apt-get update
+#          sudo apt install rakudo
 
 #          cd {{ $GITHUB_WORKSPACE }}
 
