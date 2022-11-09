@@ -25,11 +25,11 @@ jobs:
           git clone https://github.com/rakudo/rakudo
           cd rakudo
           perl Configure.pl --gen-moar --gen-nqp --backends=moar
-          make test
           make install
           cd ..
           echo "${GITHUB_WORKSPACE}/rakudo/install/bin" >> $GITHUB_PATH
           echo "${GITHUB_WORKSPACE}/rakudo/install/share/perl6/site/bin" >> $GITHUB_PATH
+          echo "$PATH"
           rakudo -v
 
       - name: Install zef
@@ -45,6 +45,7 @@ jobs:
         run: |
           echo "{$RAKUPATH}" >> $GITHUB_PATH
           echo "$PATH"
+          ls -l "${GITHUB_WORKSPACE}/rakudo/install/bin"
           zef install 'App::Prove6'
 
       - name: do tests
