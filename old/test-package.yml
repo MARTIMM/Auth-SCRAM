@@ -1,0 +1,45 @@
+name: 'Auh::SCRAM testing'
+run-name: Testing package by ${{ github.actor }}
+
+on: 
+  push:
+#    branches: [ someBranch ]
+    branches: [ main, develop ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check-test-software:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+#          - macos-latest
+#          - windows-latest
+
+        raku-version:
+          - 2022.07
+          - 2022.06
+#          - "2020.06"
+#          - "2020.05.1"
+#          - "2020.02.1"
+#          - "2020.01"
+#          - "2019.11"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out repository code and raku
+        uses: actions/checkout@v3
+        uses: Raku/setup-raku@v1
+        with:
+          raku-version: ${{ matrix.raku-version }}
+
+      - name: Install Dependencies
+        run: zef install --/test --test-depends --deps-only .
+      - name: Install App::Prove6
+        run: zef install --/test App::Prove6
+      - name: Run Tests
+        run: prove6 -l t
