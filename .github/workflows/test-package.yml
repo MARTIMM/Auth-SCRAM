@@ -3,8 +3,8 @@ run-name: Testing package by ${{ github.actor }}
 
 on: 
   push:
-    branches: [ someBranch ]
-#    branches: [ main, develop ]
+#    branches: [ someBranch ]
+    branches: [ main, develop ]
 
 defaults:
   run:
